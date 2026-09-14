@@ -1,0 +1,454 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>وَرَتِّلْ - متابعة حفظ القرآن</title>
+  <meta name="description" content="تطبيق وَرَتِّلْ لمتابعة حفظ القرآن الكريم وتسميع جزء عم وإدارة الحلقة والغياب محلياً بدون إنترنت.">
+  <meta name="theme-color" content="#090d10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="وَرَتِّلْ">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" href="icons/favicon.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- شريط الترويسة العلوي -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon" aria-hidden="true">📖</div>
+        <div class="brand-titles">
+          <h1>وَرَتِّلْ</h1>
+          <div class="brand-subtitle" id="current-day-name">متابعة حفظ القرآن</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- شارة الاتصال بدون إنترنت -->
+        <span class="offline-badge" id="offline-badge" title="حالة الاتصال">
+          <span class="offline-dot"></span>
+          <span id="offline-text">متصل</span>
+        </span>
+
+        <!-- زر تبديل الوضع الليلي / النهاري -->
+        <button type="button" class="icon-btn" id="theme-toggle-btn" aria-label="تبديل المظهر الليلي والنهاري" title="تبديل المظهر">
+          <span id="theme-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 1. الشاشة الرئيسية -->
+    <main class="main-content" id="home-view">
+
+      <!-- بطاقة مقرر اليوم: السورة والصفحة -->
+      <section class="daily-session-card" aria-label="مقرر ورد اليوم">
+        <div class="session-header">
+          <div class="session-date-box">
+            <span class="session-date-label">📅 تاريخ اليوم</span>
+            <span class="session-date-text" id="display-today-date">جاري التحميل...</span>
+          </div>
+          <span class="session-badge" id="session-status-badge">مقرر اليوم</span>
+        </div>
+
+        <div class="session-body" id="session-display-box">
+          <!-- يتم ملؤها ديناميكياً -->
+          <div class="quran-info">
+            <div class="quran-surah-title" id="display-surah-name">سورة البقرة</div>
+            <div class="quran-page-title">الصفحة: <span class="quran-page-number" id="display-page-number">15</span></div>
+          </div>
+          <div class="quran-icon-art">✨</div>
+        </div>
+
+        <div class="session-actions">
+          <button type="button" class="btn btn-secondary btn-block" id="open-session-modal-btn">
+            <span>✏️</span>
+            <span id="session-btn-text">تعديل اسم السورة ورقم الصفحة</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- شبكة أزرار الإجراءات السريعة -->
+      <section class="actions-grid" aria-label="أزرار الإجراءات السريعة">
+        <!-- زر تسجيل غياب اليوم -->
+        <button type="button" class="action-card-btn featured" id="open-attendance-today-btn">
+          <span class="action-card-icon">📋</span>
+          <span class="action-card-title">تسجيل غياب اليوم</span>
+        </button>
+
+        <!-- زر سجل الغياب للأيام السابقة -->
+        <button type="button" class="action-card-btn" id="go-to-history-btn">
+          <span class="action-card-icon">🗂️</span>
+          <span class="action-card-title">سجل الأيام السابقة</span>
+        </button>
+
+        <!-- زر إضافة طالب جديد -->
+        <button type="button" class="action-card-btn" id="open-add-student-btn">
+          <span class="action-card-icon">➕</span>
+          <span class="action-card-title">إضافة طالب جديد</span>
+        </button>
+      </section>
+
+      <!-- شريط البحث بالاسم وإحصائيات الطلاب -->
+      <section class="search-section" aria-label="بحث الطلاب">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-student-input" class="search-input" placeholder="ابحث عن طالب بالاسم..." autocomplete="off">
+          <button type="button" id="clear-search-btn" class="search-clear-btn" aria-label="مسح البحث">✕</button>
+        </div>
+
+        <div class="search-stats-bar">
+          <span id="stats-total-students">إجمالي الطلاب: 0</span>
+          <div style="display: flex; gap: 8px;">
+            <span class="stats-count-badge" id="stats-present-count">حاضر: 0</span>
+            <span class="stats-count-badge" id="stats-absent-count" style="color: var(--danger);">غياب: 0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- قائمة الطلاب -->
+      <section class="students-list" id="students-list-container" aria-label="قائمة طلاب الحلقة">
+        <!-- يتم ملء بطاقات الطلاب ديناميكياً -->
+      </section>
+
+    </main>
+
+    <!-- 2. شاشة سجل الغياب للأيام السابقة -->
+    <section class="view-screen" id="history-view" aria-label="سجل الغياب التاريخي">
+      <div class="view-top-bar">
+        <h2 class="view-title">
+          <span>🗂️</span>
+          <span>سجل غياب الأيام السابقة</span>
+        </h2>
+        <button type="button" class="btn btn-secondary" id="back-to-home-btn" style="min-height: 40px; padding: 6px 14px; font-size: 0.85rem;">
+          <span>الرئيسية ↩</span>
+        </button>
+      </div>
+
+      <!-- تصفية حسب التاريخ في صفحة السجل -->
+      <div class="search-input-wrapper">
+        <span class="search-icon">📅</span>
+        <input type="date" id="filter-history-date" class="search-input" style="padding-right: 44px;">
+      </div>
+
+      <!-- حاوية بطاقات الأيام السابقة -->
+      <div class="history-cards-container" id="history-cards-container">
+        <!-- يتم ملء البطاقات ديناميكياً -->
+      </div>
+    </section>
+
+  </div> <!-- نهاية app-container -->
+
+  <!-- ============================================================
+       النوافذ المنبثقة (Modals)
+       ============================================================ -->
+
+  <!-- 1. نافذة إضافة/تعديل سورة اليوم ورقم الصفحة -->
+  <div class="modal-overlay" id="session-modal" role="dialog" aria-modal="true" aria-labelledby="session-modal-title">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <h3 class="modal-title" id="session-modal-title">
+          <span>📖</span>
+          <span id="session-modal-heading">مقرر السورة والصفحة</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="session-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <form id="session-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="session-date-input">التاريخ</label>
+            <input type="date" id="session-date-input" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="session-surah-select">
+              <span>اسم السورة الكريمة</span>
+              <span class="hint">114 سورة</span>
+            </label>
+            <select id="session-surah-select" class="form-select" required>
+              <option value="">اختر سورة من القائمة...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="session-page-input">
+              <span>رقم الصفحة في المصحف</span>
+              <span class="hint">1 إلى 604</span>
+            </label>
+            <input type="number" id="session-page-input" class="form-input" min="1" max="604" placeholder="مثال: 15" required>
+            <div class="form-error-msg" id="session-page-error">يرجى إدخال رقم صفحة صحيح بين 1 و 604</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-block">حفظ المقرر اليومي</button>
+          <button type="button" class="btn btn-secondary close-modal-btn" data-modal="session-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. نافذة إضافة / تعديل بيانات طالب -->
+  <div class="modal-overlay" id="student-modal" role="dialog" aria-modal="true" aria-labelledby="student-modal-title">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <h3 class="modal-title" id="student-modal-title">
+          <span id="student-modal-icon">➕</span>
+          <span id="student-modal-heading">إضافة طالب جديد</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="student-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <form id="student-form" novalidate>
+        <input type="hidden" id="student-edit-id" value="">
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="student-name-input">اسم الطالب بالكامل *</label>
+            <input type="text" id="student-name-input" class="form-input" placeholder="مثال: محمد عبدالله القحطاني" required autocomplete="off">
+            <div class="form-error-msg" id="student-name-error">يرجى كتابة اسم الطالب الثلاثي أو الرباعي.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="student-id-input">
+              <span>رقم الهوية الوطنية *</span>
+              <span class="hint" id="national-id-counter">9 أرقام بالضبط</span>
+            </label>
+            <input type="tel" id="student-id-input" class="form-input" placeholder="مثال: 109283746" maxlength="9" pattern="\d{9}" inputmode="numeric" required>
+            <div class="form-error-msg" id="student-id-error">رقم الهوية يجب أن يتكون من 9 أرقام بالضبط وبدون تكرار.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="student-phone-input">رقم الجوال *</label>
+            <input type="tel" id="student-phone-input" class="form-input" placeholder="مثال: 0551234567" inputmode="tel" required>
+            <div class="form-error-msg" id="student-phone-error">يرجى إدخال رقم جوال صحيح للتواصل والواتساب.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="student-dob-input">تاريخ الميلاد</label>
+            <input type="date" id="student-dob-input" class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="student-birthplace-input">مكان الميلاد</label>
+            <input type="text" id="student-birthplace-input" class="form-input" placeholder="مثال: الرياض، جدة، مكة..." autocomplete="off">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-block" id="student-save-btn">حفظ بيانات الطالب</button>
+          <button type="button" class="btn btn-secondary close-modal-btn" data-modal="student-modal">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. نافذة تفاصيل الملف الشخصي للطالب -->
+  <div class="modal-overlay" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-student-name">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>👤</span>
+          <span id="profile-student-name">ملف الطالب</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="profile-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="profile-meta-grid">
+          <div class="profile-meta-box">
+            <span class="profile-meta-label">رقم الهوية</span>
+            <span class="profile-meta-value" id="profile-national-id">-</span>
+          </div>
+
+          <div class="profile-meta-box">
+            <span class="profile-meta-label">رقم الجوال</span>
+            <span class="profile-meta-value" id="profile-phone">-</span>
+          </div>
+
+          <div class="profile-meta-box">
+            <span class="profile-meta-label">تاريخ الميلاد</span>
+            <span class="profile-meta-value" id="profile-dob">-</span>
+          </div>
+
+          <div class="profile-meta-box">
+            <span class="profile-meta-label">مكان الميلاد</span>
+            <span class="profile-meta-value" id="profile-birthplace">-</span>
+          </div>
+        </div>
+
+        <!-- متابعة سور جزء عم قبل سجل الغياب -->
+        <div class="profile-juz-amma-section">
+          <div class="profile-section-header">
+            <div>
+              <div class="profile-history-title">📖 متابعة سور جزء عم (37 سورة)</div>
+              <div class="profile-section-subtitle">يبدأ التسميع من سورة النبأ حتى سورة الناس</div>
+            </div>
+            <span class="juz-progress-badge" id="profile-juz-progress">0 / 37</span>
+          </div>
+
+          <!-- شريط تقدم بصري -->
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="profile-juz-progress-bar" style="width: 0%;"></div>
+          </div>
+
+          <!-- شبكة سور جزء عم الـ 37 -->
+          <div class="juz-surahs-grid" id="profile-juz-surahs-grid">
+            <!-- يتم ملء السور الـ 37 ديناميكياً مع تمييز المسمعة والتالية -->
+          </div>
+        </div>
+
+        <!-- سجل غيابات هذا الطالب بالتحديد -->
+        <div class="profile-history-section">
+          <div class="profile-history-title" id="profile-absence-title">سجل غياب الطالب:</div>
+          <div class="profile-absence-tags" id="profile-absence-tags-container">
+            <!-- يتم تعبئة وسوم الغياب ديناميكياً -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="profile-edit-btn" style="flex: 1;">
+          <span>✏️</span>
+          <span>تعديل البيانات</span>
+        </button>
+        <button type="button" class="btn btn-danger-outline" id="profile-delete-btn">
+          <span>🗑️</span>
+          <span>حذف</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. نافذة تسجيل غياب اليوم أو تعديل غياب يوم سابق -->
+  <div class="modal-overlay" id="attendance-modal" role="dialog" aria-modal="true" aria-labelledby="attendance-modal-heading">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>📋</span>
+          <span id="attendance-modal-heading">تسجيل غياب اليوم</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="attendance-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="attendance-summary-header">
+          <span id="attendance-date-label">تاريخ: -</span>
+          <span id="attendance-count-label" style="color: var(--danger);">الغياب: 0</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 2px 0;">
+          <span style="font-size: 0.8rem; color: var(--text-tertiary);">اضغط على اسم الطالب لتحديده كغائب:</span>
+          <button type="button" id="toggle-all-absence-btn" class="btn btn-secondary" style="min-height: 32px; padding: 4px 10px; font-size: 0.75rem;">
+            تحديد الكل
+          </button>
+        </div>
+
+        <div class="attendance-picker-list" id="attendance-picker-list">
+          <!-- قائمة الطلاب لاختيار الغائبين ديناميكياً -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-block" id="save-attendance-btn">حفظ الغياب</button>
+        <button type="button" class="btn btn-secondary close-modal-btn" data-modal="attendance-modal">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. نافذة تسجيل تسميع سورة من جزء عم (Recitation Modal) -->
+  <div class="modal-overlay modal-centered" id="recitation-modal" role="dialog" aria-modal="true" aria-labelledby="recitation-modal-title">
+    <div class="modal-alert-box" style="max-width: 420px; text-align: right; align-items: stretch;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 12px;">
+        <h3 class="modal-title" id="recitation-modal-title" style="font-size: 1.1rem;">
+          <span>📖</span>
+          <span>تسجيل تسميع سورة (جزء عم)</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="recitation-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 10px 0;">
+        <div style="background: var(--bg-primary); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--surface-border-subtle);">
+          <span style="font-size: 0.75rem; color: var(--text-tertiary);">الطالب/ة:</span>
+          <div id="recitation-student-name" style="font-size: 1.05rem; font-weight: 800; color: var(--primary);"></div>
+        </div>
+
+        <div class="next-surah-highlight-card" id="recitation-suggested-box">
+          <div style="font-size: 0.78rem; font-weight: 700; color: var(--accent-gold);">🎯 السورة التالية المقررة في الدور:</div>
+          <div id="recitation-suggested-name" style="font-size: 1.25rem; font-weight: 900; color: var(--text-primary); margin: 4px 0;">سورة النبأ</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary);">يبدأ جزء عم من سورة النبأ حتى سورة الناس</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="recitation-surah-select">
+            <span>أو اختر سورة أخرى للتسميع:</span>
+          </label>
+          <select id="recitation-surah-select" class="form-select">
+            <!-- يتم تعبئتها بـ 37 سورة -->
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 0 0; background: none; border-top: 1px solid var(--surface-border-subtle); display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" class="btn btn-primary btn-block" id="confirm-recitation-btn">
+          <span>✓</span>
+          <span>تأكيد تسجيل التسميع</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="recitation-modal">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. نافذة تأكيد حذف الطالب المنبثقة (Centered Alert Modal) -->
+  <div class="modal-overlay modal-centered" id="delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
+    <div class="modal-alert-box">
+      <div class="delete-icon-badge">
+        <span class="delete-icon-symbol">⚠️</span>
+      </div>
+
+      <h3 class="delete-dialog-title" id="delete-dialog-title">تأكيد حذف الطالب</h3>
+      
+      <p class="delete-dialog-desc">
+        هل أنت متأكد من رغبتك في حذف الطالب <span id="delete-student-name" class="delete-student-highlight"></span> نهائياً من السجل؟
+      </p>
+
+      <div class="delete-alert-warning">
+        <span style="font-size: 1.1rem;">⚠️</span>
+        <span>سيتم حذف جميع سجلات الطالب وغياباته المرتبطة به ولا يمكن التراجع عن هذا الإجراء.</span>
+      </div>
+
+      <div class="delete-dialog-actions">
+        <button type="button" class="btn btn-danger-solid btn-block" id="confirm-delete-action-btn">
+          <span>🗑️</span>
+          <span>نعم، تأكيد الحذف النهائي</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="delete-confirm-modal">
+          <span>تراجع وإلغاء</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- حاوية إشعارات Toast -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ملفات الجافاسكريبت -->
+  <script src="js/quran-data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/pwa-register.js"></script>
+</body>
+</html>

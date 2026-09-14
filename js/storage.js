@@ -1,0 +1,383 @@
+// إدارة التخزين المحلي والعمليات على البيانات (Students, Daily Sessions, Attendance)
+
+const STORAGE_KEYS = {
+  STUDENTS: 'maram_students_v1',
+  SESSIONS: 'maram_sessions_v1',
+  ATTENDANCE: 'maram_attendance_v1',
+  THEME: 'maram_theme_v1',
+  RECITATIONS: 'maram_recitations_v1'
+};
+
+// دوال مساعدة للتاريخ
+function getTodayStr() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateArabic(dateStr) {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  
+  const options = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  };
+  return date.toLocaleDateString('ar-SA', options);
+}
+
+// استرجاع وحفظ البيانات العامة بأمان
+function safeGet(key, defaultValue) {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
+  } catch (e) {
+    console.error(`Error reading ${key} from localStorage:`, e);
+    return defaultValue;
+  }
+}
+
+function safeSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (e) {
+    console.error(`Error saving ${key} to localStorage:`, e);
+    return false;
+  }
+}
+
+// -------------------------------------------------------------
+// إدارة الطلاب (Students)
+// -------------------------------------------------------------
+
+function getStudents() {
+  return safeGet(STORAGE_KEYS.STUDENTS, []);
+}
+
+function getStudentById(id) {
+  const students = getStudents();
+  return students.find(s => s.id === id) || null;
+}
+
+function validateNationalId(nationalId, excludeStudentId = null) {
+  const cleanId = String(nationalId || '').trim();
+  if (!/^\d{9}$/.test(cleanId)) {
+    return { valid: false, message: 'رقم الهوية يجب أن يتكون من 9 أرقام بالضبط.' };
+  }
+  const students = getStudents();
+  const duplicate = students.find(s => s.nationalId === cleanId && s.id !== excludeStudentId);
+  if (duplicate) {
+    return { valid: false, message: `رقم الهوية مسجل مسبقاً للطالب: ${duplicate.fullName}` };
+  }
+  return { valid: true, cleanId };
+}
+
+function saveStudent(studentData) {
+  const students = getStudents();
+  const validation = validateNationalId(studentData.nationalId, studentData.id);
+  if (!validation.valid) {
+    throw new Error(validation.message);
+  }
+
+  if (studentData.id) {
+    // تعديل
+    const index = students.findIndex(s => s.id === studentData.id);
+    if (index === -1) throw new Error('الطالب غير موجود.');
+    students[index] = {
+      ...students[index],
+      ...studentData,
+      nationalId: validation.cleanId,
+      updatedAt: new Date().toISOString()
+    };
+    safeSet(STORAGE_KEYS.STUDENTS, students);
+    return students[index];
+  } else {
+    // إضافة جديد
+    const newStudent = {
+      id: 'std_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      fullName: studentData.fullName.trim(),
+      nationalId: validation.cleanId,
+      phone: (studentData.phone || '').trim(),
+      birthDate: studentData.birthDate || '',
+      birthPlace: (studentData.birthPlace || '').trim(),
+      createdAt: new Date().toISOString()
+    };
+    students.push(newStudent);
+    // ترتيب أبجدي تلقائي
+    students.sort((a, b) => a.fullName.localeCompare(b.fullName, 'ar'));
+    safeSet(STORAGE_KEYS.STUDENTS, students);
+    return newStudent;
+  }
+}
+
+function deleteStudent(studentId) {
+  let students = getStudents();
+  students = students.filter(s => s.id !== studentId);
+  safeSet(STORAGE_KEYS.STUDENTS, students);
+
+  // حذف الطالب من سجلات الغياب القديمة أيضاً للحفاظ على اتساق البيانات
+  const attendance = getAllAttendance();
+  let attendanceModified = false;
+  Object.keys(attendance).forEach(date => {
+    if (attendance[date].absentStudentIds.includes(studentId)) {
+      attendance[date].absentStudentIds = attendance[date].absentStudentIds.filter(id => id !== studentId);
+      attendanceModified = true;
+    }
+  });
+  if (attendanceModified) {
+    safeSet(STORAGE_KEYS.ATTENDANCE, attendance);
+  }
+
+  // حذف سجلات التسميع للطالب
+  const recitations = getAllRecitations();
+  if (recitations[studentId]) {
+    delete recitations[studentId];
+    safeSet(STORAGE_KEYS.RECITATIONS, recitations);
+  }
+
+  return true;
+}
+
+// -------------------------------------------------------------
+// إدارة ومتابعة تسميع سور جزء عم (Juz' Amma Recitation Tracker)
+// -------------------------------------------------------------
+
+function getAllRecitations() {
+  return safeGet(STORAGE_KEYS.RECITATIONS, {});
+}
+
+function getStudentRecitations(studentId) {
+  const all = getAllRecitations();
+  return all[studentId] ? all[studentId].completedSurahIds || [] : [];
+}
+
+// معرفة السورة التالية في الدور (تبدأ من الناس 114 ثم الفلق 113 صعوداً للنبأ 78)
+function getNextSurahForStudent(studentId) {
+  const completedIds = new Set(getStudentRecitations(studentId));
+  for (const surah of JUZ_AMMA_SURAHS) {
+    if (!completedIds.has(surah.id)) {
+      return surah;
+    }
+  }
+  return null; // أتم جميع سور جزء عم
+}
+
+function saveStudentRecitation(studentId, surahId) {
+  const all = getAllRecitations();
+  if (!all[studentId]) {
+    all[studentId] = { completedSurahIds: [], history: [] };
+  }
+  const sId = Number(surahId);
+  const surah = JUZ_AMMA_SURAHS.find(s => s.id === sId);
+  const surahName = surah ? surah.name : '';
+
+  if (!all[studentId].completedSurahIds.includes(sId)) {
+    all[studentId].completedSurahIds.push(sId);
+    all[studentId].history.push({
+      surahId: sId,
+      surahName,
+      date: getTodayStr(),
+      timestamp: new Date().toISOString()
+    });
+  }
+  safeSet(STORAGE_KEYS.RECITATIONS, all);
+  return all[studentId];
+}
+
+function toggleStudentRecitation(studentId, surahId) {
+  const all = getAllRecitations();
+  if (!all[studentId]) {
+    all[studentId] = { completedSurahIds: [], history: [] };
+  }
+  const sId = Number(surahId);
+  const index = all[studentId].completedSurahIds.indexOf(sId);
+  if (index > -1) {
+    all[studentId].completedSurahIds.splice(index, 1);
+    all[studentId].history = (all[studentId].history || []).filter(h => h.surahId !== sId);
+  } else {
+    const surah = JUZ_AMMA_SURAHS.find(s => s.id === sId);
+    all[studentId].completedSurahIds.push(sId);
+    all[studentId].history = all[studentId].history || [];
+    all[studentId].history.push({
+      surahId: sId,
+      surahName: surah ? surah.name : '',
+      date: getTodayStr(),
+      timestamp: new Date().toISOString()
+    });
+  }
+  safeSet(STORAGE_KEYS.RECITATIONS, all);
+  return all[studentId];
+}
+
+// -------------------------------------------------------------
+// إدارة المقررات اليومية (Daily Quran Sessions)
+// -------------------------------------------------------------
+
+function getAllSessions() {
+  return safeGet(STORAGE_KEYS.SESSIONS, {});
+}
+
+function getDailySession(dateStr = getTodayStr()) {
+  const sessions = getAllSessions();
+  return sessions[dateStr] || null;
+}
+
+function saveDailySession(dateStr, sessionData) {
+  const sessions = getAllSessions();
+  sessions[dateStr] = {
+    surahName: (sessionData.surahName || '').trim(),
+    surahNumber: Number(sessionData.surahNumber) || 1,
+    pageNumber: Number(sessionData.pageNumber) || 1,
+    updatedAt: new Date().toISOString()
+  };
+  safeSet(STORAGE_KEYS.SESSIONS, sessions);
+  return sessions[dateStr];
+}
+
+// -------------------------------------------------------------
+// إدارة الغياب (Attendance Records)
+// -------------------------------------------------------------
+
+function getAllAttendance() {
+  return safeGet(STORAGE_KEYS.ATTENDANCE, {});
+}
+
+function getAttendance(dateStr = getTodayStr()) {
+  const all = getAllAttendance();
+  return all[dateStr] || null;
+}
+
+function saveAttendance(dateStr, absentStudentIds = []) {
+  const all = getAllAttendance();
+  all[dateStr] = {
+    absentStudentIds: Array.from(new Set(absentStudentIds)),
+    updatedAt: new Date().toISOString()
+  };
+  safeSet(STORAGE_KEYS.ATTENDANCE, all);
+  return all[dateStr];
+}
+
+function getAllAttendanceDates() {
+  const all = getAllAttendance();
+  return Object.keys(all).sort((a, b) => b.localeCompare(a)); // من الأحدث للأقدم
+}
+
+function getStudentAbsenceHistory(studentId) {
+  const all = getAllAttendance();
+  const sessions = getAllSessions();
+  const history = [];
+
+  Object.keys(all)
+    .sort((a, b) => b.localeCompare(a))
+    .forEach(date => {
+      if (all[date].absentStudentIds.includes(studentId)) {
+        history.push({
+          date,
+          formattedDate: formatDateArabic(date),
+          session: sessions[date] || null
+        });
+      }
+    });
+
+  return history;
+}
+
+// -------------------------------------------------------------
+// المظهر (Theme)
+// -------------------------------------------------------------
+
+function getTheme() {
+  const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+  if (saved) return saved;
+  // تفضيل نظام التشغيل
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function saveTheme(theme) {
+  localStorage.setItem(STORAGE_KEYS.THEME, theme);
+}
+
+// -------------------------------------------------------------
+// تهيئة بيانات افتراضية إذا كان التطبيق يفتح لأول مرة
+// -------------------------------------------------------------
+
+function initDemoDataIfEmpty() {
+  const students = getStudents();
+  if (students.length === 0) {
+    const today = getTodayStr();
+    const demoStudents = [
+      {
+        id: 'std_demo_1',
+        fullName: 'عبدالرحمن إبراهيم المطيري',
+        nationalId: '109283746',
+        phone: '0551234567',
+        birthDate: '2012-04-12',
+        birthPlace: 'الرياض',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'std_demo_2',
+        fullName: 'عمر خالد الدوسري',
+        nationalId: '108374659',
+        phone: '0547654321',
+        birthDate: '2011-09-20',
+        birthPlace: 'الدمام',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'std_demo_3',
+        fullName: 'يوسف محمد القحطاني',
+        nationalId: '107465982',
+        phone: '0509876543',
+        birthDate: '2013-01-15',
+        birthPlace: 'جدة',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'std_demo_4',
+        fullName: 'حمزة عبدالله الغامدي',
+        nationalId: '106598473',
+        phone: '0562345678',
+        birthDate: '2012-11-03',
+        birthPlace: 'مكة المكرمة',
+        createdAt: new Date().toISOString()
+      }
+    ];
+    safeSet(STORAGE_KEYS.STUDENTS, demoStudents);
+
+    // تسجيل مقرر افتراضي لليوم
+    saveDailySession(today, {
+      surahName: 'البقرة',
+      surahNumber: 2,
+      pageNumber: 15
+    });
+
+    // تسجيل غياب تجريبي ليوم أمس لكي يظهر في سجل الأيام السابقة فوراً
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+    saveDailySession(yesterdayStr, {
+      surahName: 'البقرة',
+      surahNumber: 2,
+      pageNumber: 14
+    });
+
+    saveAttendance(yesterdayStr, ['std_demo_2']);
+
+    // تسجيل تسميع تجريبي (يبدأ من سورة النبأ 78 صعوداً للأعلى)
+    saveStudentRecitation('std_demo_1', 78);
+    saveStudentRecitation('std_demo_1', 79);
+    saveStudentRecitation('std_demo_2', 78);
+    saveStudentRecitation('std_demo_4', 78);
+    saveStudentRecitation('std_demo_4', 79);
+    saveStudentRecitation('std_demo_4', 80);
+    saveStudentRecitation('std_demo_4', 81);
+  }
+}
