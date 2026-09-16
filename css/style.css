@@ -1458,3 +1458,145 @@ input, textarea {
   transform: scale(0.97);
 }
 
+
+
+/* ============================================================
+   أنماط نظام الاختبارات (Exams System Styles)
+   ============================================================ */
+
+.btn-card-exam {
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  background: var(--surface-secondary);
+  color: var(--accent-gold);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+
+.btn-card-exam:hover {
+  background: var(--gold-gradient);
+  color: #1a1a1a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+}
+
+.btn-card-exam:active {
+  transform: scale(0.97);
+}
+
+/* شارة آخر اختبار في بطاقة الطالب */
+.student-latest-exam-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  margin-top: 6px;
+}
+
+/* أزرار الاقتراحات السريعة لاسم الاختبار */
+.quick-tag-btn {
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+
+.quick-tag-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.quick-tag-btn:active {
+  transform: scale(0.95);
+}
+
+/* سجل الاختبارات في الملف الشخصي */
+.profile-exams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.profile-exam-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  transition: border-color var(--transition-fast);
+}
+
+.profile-exam-card:hover {
+  border-color: var(--accent-gold);
+}
+
+.exam-card-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.exam-card-result {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--accent-gold);
+  margin-top: 2px;
+}
+
+.exam-card-date {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+}
+
+.exam-card-notes {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.exam-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color var(--transition-fast);
+}
+
+.exam-delete-btn:hover {
+  color: var(--danger);
+  background: rgba(244, 63, 94, 0.1);
+}

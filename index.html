@@ -316,6 +316,20 @@
           </div>
         </div>
 
+        <!-- سجل اختبارات هذا الطالب -->
+        <div class="profile-history-section" id="profile-exams-section" style="margin-top: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <div class="profile-history-title" id="profile-exams-title">🎓 سجل الاختبارات (0):</div>
+            <button type="button" class="btn btn-secondary" id="profile-add-exam-btn" style="min-height: 32px; padding: 4px 10px; font-size: 0.78rem;">
+              <span>➕</span>
+              <span>تسجيل اختبار جديد</span>
+            </button>
+          </div>
+          <div class="profile-exams-list" id="profile-exams-list-container">
+            <!-- يتم تعبئة بطاقات الاختبارات ديناميكياً -->
+          </div>
+        </div>
+
         <!-- سجل غيابات هذا الطالب بالتحديد -->
         <div class="profile-history-section">
           <div class="profile-history-title" id="profile-absence-title">سجل غياب الطالب:</div>
@@ -536,6 +550,77 @@
       <div class="modal-footer" style="padding: 10px 0 0; background: none; border-top: 1px solid var(--surface-border-subtle);">
         <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="backup-reminder-modal">إغلاق</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 9. نافذة تسجيل اختبار لطالب (Exam Modal) -->
+  <div class="modal-overlay modal-centered" id="exam-modal" role="dialog" aria-modal="true" aria-labelledby="exam-modal-title">
+    <div class="modal-alert-box" style="max-width: 440px; text-align: right; align-items: stretch;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 12px;">
+        <h3 class="modal-title" id="exam-modal-title" style="font-size: 1.15rem;">
+          <span>📝</span>
+          <span>تسجيل اختبار لطالب</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="exam-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <form id="exam-form" novalidate>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 12px 0;">
+          <!-- اسم الطالب -->
+          <div style="background: var(--bg-primary); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--surface-border-subtle);">
+            <span style="font-size: 0.75rem; color: var(--text-tertiary);">الطالب:</span>
+            <div id="exam-student-name" style="font-size: 1.05rem; font-weight: 800; color: var(--primary);"></div>
+          </div>
+
+          <!-- اقتراحات سريعة لاسم الاختبار -->
+          <div>
+            <label class="form-label" style="margin-bottom: 6px;">
+              <span>اسم الاختبار *</span>
+              <span class="hint">اقتراحات سريعة:</span>
+            </label>
+            <div class="exam-quick-tags" id="exam-quick-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+              <button type="button" class="quick-tag-btn" data-tag="اختبار جزء عم">جزء عم</button>
+              <button type="button" class="quick-tag-btn" data-tag="اختبار جزء تبارك">جزء تبارك</button>
+              <button type="button" class="quick-tag-btn" data-tag="اختبار 3 أجزاء">3 أجزاء</button>
+              <button type="button" class="quick-tag-btn" data-tag="اختبار 5 أجزاء">5 أجزاء</button>
+              <button type="button" class="quick-tag-btn" data-tag="اختبار سورة البقرة">سورة البقرة</button>
+              <button type="button" class="quick-tag-btn" data-tag="اختبار شهري">اختبار شهري</button>
+            </div>
+            <input type="text" id="exam-name-input" class="form-input" placeholder="اكتب اسم الاختبار، مثال: اختبار جزء عم..." required autocomplete="off">
+            <div class="form-error-msg" id="exam-name-error">يرجى كتابة اسم الاختبار أو اختياره من المقترحات.</div>
+          </div>
+
+          <!-- النتيجة / التقدير -->
+          <div class="form-group">
+            <label class="form-label" for="exam-result-input">
+              <span>النتيجة أو التقدير *</span>
+              <span class="hint">نص حر</span>
+            </label>
+            <input type="text" id="exam-result-input" class="form-input" placeholder="مثال: ممتاز (98 من 100) أو مجتاز" required autocomplete="off">
+            <div class="form-error-msg" id="exam-result-error">يرجى كتابة النتيجة أو التقدير.</div>
+          </div>
+
+          <!-- تاريخ الاختبار -->
+          <div class="form-group">
+            <label class="form-label" for="exam-date-input">تاريخ الاختبار</label>
+            <input type="date" id="exam-date-input" class="form-input" required>
+          </div>
+
+          <!-- ملاحظات المعلم -->
+          <div class="form-group">
+            <label class="form-label" for="exam-notes-input">ملاحظات المعلم (اختياري)</label>
+            <textarea id="exam-notes-input" class="form-input" rows="2" placeholder="ملاحظات حول التجويد، الحفظ، ومخارج الحروف..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding: 10px 0 0; background: none; border-top: 1px solid var(--surface-border-subtle); display: flex; flex-direction: column; gap: 8px;">
+          <button type="submit" class="btn btn-primary btn-block" id="save-exam-btn">
+            <span>✓</span>
+            <span>حفظ نتيجة الاختبار</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="exam-modal">إلغاء</button>
+        </div>
+      </form>
     </div>
   </div>
 

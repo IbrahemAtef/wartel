@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   SESSIONS: 'maram_sessions_v1',
   ATTENDANCE: 'maram_attendance_v1',
   THEME: 'maram_theme_v1',
-  RECITATIONS: 'maram_recitations_v1'
+  RECITATIONS: 'maram_recitations_v1',
+  EXAMS: 'wartel_exams_v1'
 };
 
 // دوال مساعدة للتاريخ
@@ -143,6 +144,13 @@ function deleteStudent(studentId) {
   if (recitations[studentId]) {
     delete recitations[studentId];
     safeSet(STORAGE_KEYS.RECITATIONS, recitations);
+  }
+
+  // حذف سجلات الاختبارات للطالب
+  const exams = getAllExams();
+  if (exams[studentId]) {
+    delete exams[studentId];
+    safeSet(STORAGE_KEYS.EXAMS, exams);
   }
 
   return true;
@@ -404,6 +412,54 @@ function initDemoDataIfEmpty() {
 // إدارة النسخ الاحتياطي وتصدير واستيراد البيانات بالكامل
 // -------------------------------------------------------------
 
+
+// -------------------------------------------------------------
+// إدارة ومتابعة اختبارات الطلاب (Exams Management)
+// -------------------------------------------------------------
+
+function getAllExams() {
+  return safeGet(STORAGE_KEYS.EXAMS, {});
+}
+
+function getStudentExams(studentId) {
+  const all = getAllExams();
+  const list = all[studentId] || [];
+  return [...list].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.timestamp || '').localeCompare(a.timestamp || ''));
+}
+
+function getLatestStudentExam(studentId) {
+  const list = getStudentExams(studentId);
+  return list.length > 0 ? list[0] : null;
+}
+
+function saveStudentExam(studentId, examData) {
+  const all = getAllExams();
+  if (!all[studentId]) {
+    all[studentId] = [];
+  }
+  const newExam = {
+    id: 'exam_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    examName: examData.examName.trim(),
+    result: examData.result.trim(),
+    date: examData.date || getTodayStr(),
+    notes: (examData.notes || '').trim(),
+    timestamp: new Date().toISOString()
+  };
+  all[studentId].push(newExam);
+  safeSet(STORAGE_KEYS.EXAMS, all);
+  return newExam;
+}
+
+function deleteStudentExam(studentId, examId) {
+  const all = getAllExams();
+  if (all[studentId]) {
+    all[studentId] = all[studentId].filter(e => e.id !== examId);
+    safeSet(STORAGE_KEYS.EXAMS, all);
+    return true;
+  }
+  return false;
+}
+
 function exportAllDataJSON() {
   const backup = {
     app: 'wartel',
@@ -413,6 +469,7 @@ function exportAllDataJSON() {
     sessions: getAllSessions(),
     attendance: getAllAttendance(),
     recitations: getAllRecitations(),
+    exams: getAllExams(),
     theme: getTheme()
   };
   return JSON.stringify(backup, null, 2);
@@ -436,6 +493,9 @@ function importAllDataJSON(jsonStr) {
     if (data.recitations && typeof data.recitations === 'object') {
       safeSet(STORAGE_KEYS.RECITATIONS, data.recitations);
     }
+    if (data.exams && typeof data.exams === 'object') {
+      safeSet(STORAGE_KEYS.EXAMS, data.exams);
+    }
     if (data.theme) {
       saveTheme(data.theme);
     }
@@ -452,6 +512,7 @@ function resetToDemoData() {
   localStorage.removeItem(STORAGE_KEYS.SESSIONS);
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
   localStorage.removeItem(STORAGE_KEYS.RECITATIONS);
+  localStorage.removeItem(STORAGE_KEYS.EXAMS);
   initDemoDataIfEmpty();
 }
 

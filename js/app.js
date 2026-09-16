@@ -317,6 +317,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const nextSurah = getNextSurahForStudent(student.id);
       const nextSurahText = nextSurah ? `سورة ${nextSurah.name}` : 'أتمت جزء عم كاملاً 🌟';
 
+      // حساب آخر اختبار قدمه الطالب إن وجد
+      const latestExam = getLatestStudentExam(student.id);
+      let latestExamBadgeHtml = '';
+      if (latestExam) {
+        latestExamBadgeHtml = `
+          <div class="student-latest-exam-badge">
+            <span>🎓</span>
+            <span>آخر اختبار: <strong>${latestExam.examName}</strong> (${latestExam.result})</span>
+          </div>
+        `;
+      }
+
       card.innerHTML = `
         <div class="student-card-top-row">
           <div class="student-info-col">
@@ -335,11 +347,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <span style="color: var(--text-tertiary); font-weight: 600;">📖 السورة التالية في الدور:</span>
           <span class="next-surah-tag">🎯 ${nextSurahText}</span>
         </div>
+        ${latestExamBadgeHtml}
 
         <div class="student-card-actions-row">
           <button type="button" class="btn-card-recite" title="تسجيل تسميع سورة من جزء عم">
             <span>📖</span>
             <span>تسجيل التسميع</span>
+          </button>
+          <button type="button" class="btn-card-exam" title="تسجيل تقديم اختبار للطالب">
+            <span>📝</span>
+            <span>اختبار</span>
           </button>
           <button type="button" class="btn-card-delete" title="حذف الطالبة">
             <span>🗑️</span>
@@ -358,6 +375,15 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         openRecitationModal(student);
       });
+
+      // زر تسجيل الاختبار من البطاقة مباشرة
+      const examBtn = card.querySelector('.btn-card-exam');
+      if (examBtn) {
+        examBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openExamModal(student);
+        });
+      }
 
       // زر الحذف من البطاقة مباشرة
       card.querySelector('.btn-card-delete').addEventListener('click', (e) => {
@@ -523,8 +549,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('profile-dob').textContent = student.birthDate || 'غير مسجل';
     document.getElementById('profile-birthplace').textContent = student.birthPlace || 'غير مسجل';
 
-    // عرض ومتابعة سور جزء عم (قبل سجل الغياب)
+    // عرض ومتابعة سور جزء عم
     renderProfileJuzAmma(student);
+
+    // عرض سجل اختبارات الطالب
+    renderProfileExams(student);
 
     // تحميل وسوم تاريخ غيابات الطالب
     const absenceHistory = getStudentAbsenceHistory(student.id);
