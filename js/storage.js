@@ -1,6 +1,7 @@
 // إدارة التخزين المحلي والعمليات على البيانات (Students, Daily Sessions, Attendance)
 
 const STORAGE_KEYS = {
+  INITIALIZED: 'wartel_initialized_v2',
   STUDENTS: 'maram_students_v1',
   SESSIONS: 'maram_sessions_v1',
   ATTENDANCE: 'maram_attendance_v1',
@@ -35,7 +36,7 @@ function formatDateArabic(dateStr) {
 function safeGet(key, defaultValue) {
   try {
     const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : defaultValue;
+    return data !== null ? JSON.parse(data) : defaultValue;
   } catch (e) {
     console.error(`Error reading ${key} from localStorage:`, e);
     return defaultValue;
@@ -308,48 +309,62 @@ function saveTheme(theme) {
 // -------------------------------------------------------------
 
 function initDemoDataIfEmpty() {
-  const students = getStudents();
-  if (students.length === 0) {
-    const today = getTodayStr();
-    const demoStudents = [
-      {
-        id: 'std_demo_1',
-        fullName: 'عبدالرحمن إبراهيم المطيري',
-        nationalId: '109283746',
-        phone: '0551234567',
-        birthDate: '2012-04-12',
-        birthPlace: 'الرياض',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'std_demo_2',
-        fullName: 'عمر خالد الدوسري',
-        nationalId: '108374659',
-        phone: '0547654321',
-        birthDate: '2011-09-20',
-        birthPlace: 'الدمام',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'std_demo_3',
-        fullName: 'يوسف محمد القحطاني',
-        nationalId: '107465982',
-        phone: '0509876543',
-        birthDate: '2013-01-15',
-        birthPlace: 'جدة',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'std_demo_4',
-        fullName: 'حمزة عبدالله الغامدي',
-        nationalId: '106598473',
-        phone: '0562345678',
-        birthDate: '2012-11-03',
-        birthPlace: 'مكة المكرمة',
-        createdAt: new Date().toISOString()
-      }
-    ];
-    safeSet(STORAGE_KEYS.STUDENTS, demoStudents);
+  // 1. إذا تم تهيئة التطبيق مسبقاً، نمنع نهائياً مسح أو استبدال بيانات المستخدم
+  if (localStorage.getItem(STORAGE_KEYS.INITIALIZED)) {
+    return;
+  }
+
+  // 2. إذا كانت توجد أي بيانات سابقة (حتى لو كانت قائمة فارغة أو جلسات مسجلة)، نعتبر التطبيق مهيأً ولا نلمسها
+  const existingStudents = localStorage.getItem(STORAGE_KEYS.STUDENTS);
+  const existingSessions = localStorage.getItem(STORAGE_KEYS.SESSIONS);
+  const existingAttendance = localStorage.getItem(STORAGE_KEYS.ATTENDANCE);
+  if (existingStudents !== null || existingSessions !== null || existingAttendance !== null) {
+    localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+    return;
+  }
+
+  // 3. فقط في أول زيارة مطلقة للتطبيق على جهاز جديد تماماً:
+  localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+  const today = getTodayStr();
+  const demoStudents = [
+    {
+      id: 'std_demo_1',
+      fullName: 'عبدالرحمن إبراهيم المطيري',
+      nationalId: '109283746',
+      phone: '0551234567',
+      birthDate: '2012-04-12',
+      birthPlace: 'الرياض',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'std_demo_2',
+      fullName: 'عمر خالد الدوسري',
+      nationalId: '108374659',
+      phone: '0547654321',
+      birthDate: '2011-09-20',
+      birthPlace: 'الدمام',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'std_demo_3',
+      fullName: 'يوسف محمد القحطاني',
+      nationalId: '107465982',
+      phone: '0509876543',
+      birthDate: '2013-01-15',
+      birthPlace: 'جدة',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'std_demo_4',
+      fullName: 'حمزة عبدالله الغامدي',
+      nationalId: '106598473',
+      phone: '0562345678',
+      birthDate: '2012-11-03',
+      birthPlace: 'مكة المكرمة',
+      createdAt: new Date().toISOString()
+    }
+  ];
+  safeSet(STORAGE_KEYS.STUDENTS, demoStudents);
 
     // تسجيل مقرر افتراضي لليوم
     saveDailySession(today, {
@@ -379,5 +394,60 @@ function initDemoDataIfEmpty() {
     saveStudentRecitation('std_demo_4', 79);
     saveStudentRecitation('std_demo_4', 80);
     saveStudentRecitation('std_demo_4', 81);
+}
+
+
+// -------------------------------------------------------------
+// إدارة النسخ الاحتياطي وتصدير واستيراد البيانات بالكامل
+// -------------------------------------------------------------
+
+function exportAllDataJSON() {
+  const backup = {
+    app: 'wartel',
+    version: '2.0',
+    exportedAt: new Date().toISOString(),
+    students: getStudents(),
+    sessions: getAllSessions(),
+    attendance: getAllAttendance(),
+    recitations: getAllRecitations(),
+    theme: getTheme()
+  };
+  return JSON.stringify(backup, null, 2);
+}
+
+function importAllDataJSON(jsonStr) {
+  try {
+    const data = JSON.parse(jsonStr);
+    if (!data || typeof data !== 'object') {
+      return { success: false, message: 'ملف النسخة الاحتياطية غير صالح.' };
+    }
+    if (Array.isArray(data.students)) {
+      safeSet(STORAGE_KEYS.STUDENTS, data.students);
+    }
+    if (data.sessions && typeof data.sessions === 'object') {
+      safeSet(STORAGE_KEYS.SESSIONS, data.sessions);
+    }
+    if (data.attendance && typeof data.attendance === 'object') {
+      safeSet(STORAGE_KEYS.ATTENDANCE, data.attendance);
+    }
+    if (data.recitations && typeof data.recitations === 'object') {
+      safeSet(STORAGE_KEYS.RECITATIONS, data.recitations);
+    }
+    if (data.theme) {
+      saveTheme(data.theme);
+    }
+    localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+    return { success: true };
+  } catch (e) {
+    return { success: false, message: e.message || 'خطأ أثناء استيراد البيانات' };
   }
+}
+
+function resetToDemoData() {
+  localStorage.removeItem(STORAGE_KEYS.INITIALIZED);
+  localStorage.removeItem(STORAGE_KEYS.STUDENTS);
+  localStorage.removeItem(STORAGE_KEYS.SESSIONS);
+  localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
+  localStorage.removeItem(STORAGE_KEYS.RECITATIONS);
+  initDemoDataIfEmpty();
 }

@@ -95,6 +95,12 @@
           <span class="action-card-icon">➕</span>
           <span class="action-card-title">إضافة طالب جديد</span>
         </button>
+
+        <!-- زر النسخ الاحتياطي وحفظ البيانات -->
+        <button type="button" class="action-card-btn" id="open-backup-modal-btn">
+          <span class="action-card-icon">💾</span>
+          <span class="action-card-title">حفظ ونسخ احتياطي</span>
+        </button>
       </section>
 
       <!-- شريط البحث بالاسم وإحصائيات الطلاب -->
@@ -438,6 +444,57 @@
         <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="delete-confirm-modal">
           <span>تراجع وإلغاء</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. نافذة النسخ الاحتياطي وأمان البيانات (Backup & Data Safety Modal) -->
+  <div class="modal-overlay modal-centered" id="backup-modal" role="dialog" aria-modal="true" aria-labelledby="backup-modal-title">
+    <div class="modal-alert-box" style="max-width: 440px; text-align: right; align-items: stretch;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 12px;">
+        <h3 class="modal-title" id="backup-modal-title" style="font-size: 1.15rem;">
+          <span>💾</span>
+          <span>حفظ وأمان البيانات</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="backup-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 12px 0;">
+        <!-- بطاقة طمأنة وضمان الحفظ الدائم -->
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: flex-start; gap: 10px;">
+          <span style="font-size: 1.3rem; line-height: 1;">🔒</span>
+          <div>
+            <div style="font-weight: 800; color: var(--success); font-size: 0.95rem;">البيانات محفوظة دائماً في جهازك</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 3px; line-height: 1.5;">
+              كل التعديلات (الطلاب، وسجلات التسميع، والغياب، والمقررات) تُحفظ فورياً وتلقائياً ولن تنحذف أبداً عند تحديث الصفحة أو إغلاق المتصفح.
+            </div>
+          </div>
+        </div>
+
+        <!-- أزرار التصدير والاستيراد -->
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <button type="button" class="btn btn-primary btn-block" id="export-backup-btn" style="justify-content: center; gap: 8px;">
+            <span>📥</span>
+            <span>تصدير نسخة احتياطية كاملة (JSON)</span>
+          </button>
+          
+          <button type="button" class="btn btn-secondary btn-block" id="import-backup-trigger-btn" style="justify-content: center; gap: 8px;">
+            <span>📤</span>
+            <span>استعادة البيانات من نسخة احتياطية</span>
+          </button>
+          <input type="file" id="import-backup-file-input" accept=".json,application/json" style="display: none;">
+        </div>
+
+        <div style="border-top: 1px dashed var(--surface-border-subtle); padding-top: 10px; margin-top: 4px;">
+          <button type="button" class="btn btn-secondary btn-block" id="reset-demo-btn" style="color: var(--danger); justify-content: center; font-size: 0.8rem; padding: 6px 10px;">
+            <span>🔄</span>
+            <span>إعادة تعيين البيانات للبيانات التجريبية الأولية</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 10px 0 0; background: none; border-top: 1px solid var(--surface-border-subtle);">
+        <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="backup-modal">إغلاق</button>
       </div>
     </div>
   </div>

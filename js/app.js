@@ -865,6 +865,86 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2800);
   }
 
+  // -------------------------------------------------------------
+  // 12. إدارة النسخ الاحتياطي وأمان البيانات (Backup & Restore)
+  // -------------------------------------------------------------
+  const backupModal = document.getElementById('backup-modal');
+  const openBackupModalBtn = document.getElementById('open-backup-modal-btn');
+  const exportBackupBtn = document.getElementById('export-backup-btn');
+  const importBackupTriggerBtn = document.getElementById('import-backup-trigger-btn');
+  const importBackupFileInput = document.getElementById('import-backup-file-input');
+  const resetDemoBtn = document.getElementById('reset-demo-btn');
+
+  if (openBackupModalBtn) {
+    openBackupModalBtn.addEventListener('click', () => {
+      openModal(backupModal);
+    });
+  }
+
+  if (exportBackupBtn) {
+    exportBackupBtn.addEventListener('click', () => {
+      try {
+        const dataStr = exportAllDataJSON();
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wartel-backup-${getTodayStr()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('تم تنزيل النسخة الاحتياطية بنجاح 💾', 'success');
+      } catch (err) {
+        showToast('حدث خطأ أثناء تصدير البيانات', 'error');
+      }
+    });
+  }
+
+  if (importBackupTriggerBtn && importBackupFileInput) {
+    importBackupTriggerBtn.addEventListener('click', () => {
+      importBackupFileInput.click();
+    });
+
+    importBackupFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = importAllDataJSON(event.target.result);
+        if (result.success) {
+          closeModal(backupModal);
+          renderTodaySession();
+          renderStudentsList();
+          renderHistoryCards();
+          showToast('تمت استعادة البيانات بنجاح تام ✅', 'success');
+        } else {
+          showToast(result.message || 'فشل استيراد النسخة الاحتياطية', 'error');
+        }
+        importBackupFileInput.value = '';
+      };
+      reader.onerror = () => {
+        showToast('تعذر قراءة ملف النسخة الاحتياطية', 'error');
+        importBackupFileInput.value = '';
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  if (resetDemoBtn) {
+    resetDemoBtn.addEventListener('click', () => {
+      if (window.confirm('هل أنت متأكد من رغبتك في إعادة تعيين البيانات التجريبية الأولية؟')) {
+        resetToDemoData();
+        closeModal(backupModal);
+        renderTodaySession();
+        renderStudentsList();
+        renderHistoryCards();
+        showToast('تمت إعادة تعيين البيانات التجريبية بنجاح 🔄', 'success');
+      }
+    });
+  }
+
   // التشغيل الأولي للواجهات
   renderTodaySession();
   renderStudentsList();
