@@ -894,6 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        markBackupCompleted();
         showToast('تم تنزيل النسخة الاحتياطية بنجاح 💾', 'success');
       } catch (err) {
         showToast('حدث خطأ أثناء تصدير البيانات', 'error');
@@ -943,6 +944,53 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('تمت إعادة تعيين البيانات التجريبية بنجاح 🔄', 'success');
       }
     });
+  }
+
+
+  // -------------------------------------------------------------
+  // 13. التذكير الدوري بالنسخ الاحتياطي (Periodic Reminder)
+  // -------------------------------------------------------------
+  const backupReminderModal = document.getElementById('backup-reminder-modal');
+  const reminderExportBtn = document.getElementById('reminder-export-backup-btn');
+  const reminderPostponeBtn = document.getElementById('reminder-postpone-backup-btn');
+
+  if (reminderExportBtn) {
+    reminderExportBtn.addEventListener('click', () => {
+      try {
+        const dataStr = exportAllDataJSON();
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wartel-backup-${getTodayStr()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        markBackupCompleted();
+        closeModal(backupReminderModal);
+        showToast('تم تنزيل النسخة الاحتياطية بنجاح 💾', 'success');
+      } catch (err) {
+        showToast('حدث خطأ أثناء تصدير البيانات', 'error');
+      }
+    });
+  }
+
+  if (reminderPostponeBtn) {
+    reminderPostponeBtn.addEventListener('click', () => {
+      postponeBackupReminder(7);
+      closeModal(backupReminderModal);
+      showToast('تم تأجيل التذكير لمدة أسبوع ⏰', 'success');
+    });
+  }
+
+  // فحص استحقاق التذكير الدوري بعد تحميل الصفحة بقليل
+  if (typeof shouldShowBackupReminder === 'function' && shouldShowBackupReminder()) {
+    setTimeout(() => {
+      if (backupReminderModal) {
+        openModal(backupReminderModal);
+      }
+    }, 1200);
   }
 
   // التشغيل الأولي للواجهات

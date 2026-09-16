@@ -499,6 +499,46 @@
     </div>
   </div>
 
+  <!-- 8. نافذة التذكير الدوري بالنسخ الاحتياطي (Backup Reminder Modal) -->
+  <div class="modal-overlay modal-centered" id="backup-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="backup-reminder-title">
+    <div class="modal-alert-box" style="max-width: 420px; text-align: right; align-items: stretch;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 12px;">
+        <h3 class="modal-title" id="backup-reminder-title" style="font-size: 1.15rem;">
+          <span>⏰</span>
+          <span>تذكير بالنسخ الاحتياطي الدوري</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="backup-reminder-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 0;">
+        <div style="background: rgba(217, 119, 6, 0.1); border: 1px solid rgba(217, 119, 6, 0.3); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: flex-start; gap: 10px;">
+          <span style="font-size: 1.3rem; line-height: 1;">💾</span>
+          <div>
+            <div style="font-weight: 800; color: var(--accent-gold); font-size: 0.95rem;">مر أكثر من 30 يوماً منذ آخر نسخة احتياطية</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.5;">
+              للحفاظ على سجلات طلابك وإنجازاتهم في حفظ القرآن، نوصي بتحميل نسخة احتياطية دورية للاحتفاظ بها بأمان في هاتفك أو حاسوبك.
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button type="button" class="btn btn-primary btn-block" id="reminder-export-backup-btn" style="justify-content: center; gap: 8px;">
+            <span>📥</span>
+            <span>تحميل نسخة احتياطية الآن</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-block" id="reminder-postpone-backup-btn" style="justify-content: center; gap: 8px;">
+            <span>⏰</span>
+            <span>تذكيري بعد أسبوع</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 10px 0 0; background: none; border-top: 1px solid var(--surface-border-subtle);">
+        <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="backup-reminder-modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
   <!-- حاوية إشعارات Toast -->
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 

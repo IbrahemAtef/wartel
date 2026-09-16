@@ -1,6 +1,9 @@
 // إدارة التخزين المحلي والعمليات على البيانات (Students, Daily Sessions, Attendance)
 
 const STORAGE_KEYS = {
+  LAST_BACKUP: 'wartel_last_backup_date',
+  POSTPONE_BACKUP: 'wartel_postpone_backup_date',
+  FIRST_RUN: 'wartel_first_run_date',
   INITIALIZED: 'wartel_initialized_v2',
   STUDENTS: 'maram_students_v1',
   SESSIONS: 'maram_sessions_v1',
@@ -450,4 +453,54 @@ function resetToDemoData() {
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
   localStorage.removeItem(STORAGE_KEYS.RECITATIONS);
   initDemoDataIfEmpty();
+}
+
+// -------------------------------------------------------------
+// إدارة التذكير الدوري بالنسخ الاحتياطي (كل 30 يوماً)
+// -------------------------------------------------------------
+
+function markBackupCompleted() {
+  const now = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEYS.LAST_BACKUP, now);
+  localStorage.removeItem(STORAGE_KEYS.POSTPONE_BACKUP);
+}
+
+function postponeBackupReminder(days = 7) {
+  const postponeUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  localStorage.setItem(STORAGE_KEYS.POSTPONE_BACKUP, postponeUntil);
+}
+
+function shouldShowBackupReminder() {
+  const students = getStudents();
+  // لا نظهر التنبيه إذا لم يكن هناك طلاب أصلاً
+  if (students.length === 0) return false;
+
+  // فحص تاريخ التأجيل إن وجد
+  const postponeDateStr = localStorage.getItem(STORAGE_KEYS.POSTPONE_BACKUP);
+  if (postponeDateStr) {
+    const postponeDate = new Date(postponeDateStr).getTime();
+    if (Date.now() < postponeDate) {
+      return false; // لا يزال في فترة التأجيل
+    }
+  }
+
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+  // فحص تاريخ آخر نسخة احتياطية
+  const lastBackupStr = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
+  if (lastBackupStr) {
+    const lastBackupTime = new Date(lastBackupStr).getTime();
+    return (Date.now() - lastBackupTime) >= THIRTY_DAYS_MS;
+  }
+
+  // إذا لم يتم عمل أي نسخة احتياطية مسبقاً، نفحص تاريخ أول تشغيل
+  let firstRunStr = localStorage.getItem(STORAGE_KEYS.FIRST_RUN);
+  if (!firstRunStr) {
+    firstRunStr = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEYS.FIRST_RUN, firstRunStr);
+    return false; // لا نزعج المستخدم في أول شهر من التثبيت
+  }
+
+  const firstRunTime = new Date(firstRunStr).getTime();
+  return (Date.now() - firstRunTime) >= THIRTY_DAYS_MS;
 }
