@@ -588,23 +588,25 @@ input, textarea {
 /* بطاقة الطالب (Student Card) */
 .student-card {
   background: var(--surface);
-  border: 1px solid var(--surface-border-subtle);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
-  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
 }
 
 .student-card:hover {
-  transform: translateY(-2px);
   border-color: var(--primary);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.18);
+  transform: translateY(-3px);
 }
 
 .student-card:active {
@@ -612,11 +614,11 @@ input, textarea {
 }
 
 .student-card.is-absent {
-  border-right: 4px solid var(--danger);
+  border-right: 5px solid var(--danger);
 }
 
 .student-card.is-present {
-  border-right: 4px solid var(--success);
+  border-right: 5px solid var(--success);
 }
 
 .student-card-top-row {
@@ -1360,6 +1362,8 @@ input, textarea {
 .modal-alert-box {
   width: 100%;
   max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
   background: var(--surface-elevated);
   border: 1px solid var(--surface-border);
   border-radius: 26px;
@@ -1599,4 +1603,164 @@ input, textarea {
 .exam-delete-btn:hover {
   color: var(--danger);
   background: rgba(244, 63, 94, 0.1);
+}
+
+
+/* ============================================================
+   حقول التاريخ المخصصة الذكية (Custom Date Input Styles DD/MM/YYYY)
+   ============================================================ */
+
+.date-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.date-input-wrapper .date-mask-input {
+  width: 100%;
+  padding-left: 44px !important; /* مساحة لزر التقويم على اليسار في RTL */
+  padding-right: 14px !important;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  direction: ltr;
+  text-align: right;
+}
+
+.date-picker-btn {
+  position: absolute;
+  left: 8px;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
+  z-index: 2;
+}
+
+.date-picker-btn:hover {
+  opacity: 1;
+  transform: scale(1.12);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.date-picker-btn:active {
+  transform: scale(0.95);
+}
+
+.hidden-native-date {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  left: 10px;
+  bottom: 0;
+  visibility: hidden;
+}
+
+
+/* ============================================================
+   أنماط بطاقة الطالب الفاخرة (Model 1: Luxury Glassmorphism)
+   ============================================================ */
+
+.btn-card-delete-corner {
+  width: 38px;
+  height: 38px;
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid rgba(225, 29, 72, 0.2);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.btn-card-delete-corner svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.btn-card-delete-corner:hover {
+  background: var(--danger);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.student-card-progress-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-card-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.student-card-progress-track {
+  width: 100%;
+  height: 7px;
+  background: var(--surface-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.student-card-progress-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+  border-radius: var(--radius-full);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.student-card-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-target-surah {
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  color: var(--accent-gold);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip-latest-exam {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }

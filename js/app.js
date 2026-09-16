@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   openSessionModalBtn.addEventListener('click', () => {
     const today = getTodayStr();
-    sessionDateInput.value = today;
+    sessionDateInput.value = getTodayDMY();
     const session = getDailySession(today);
 
     if (session) {
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   sessionDateInput.addEventListener('change', () => {
-    const targetDate = sessionDateInput.value;
+    const targetDate = normalizeToIsoDate(sessionDateInput.value);
     const session = getDailySession(targetDate);
     if (session) {
       sessionSurahSelect.value = session.surahName;
@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   sessionForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const dateStr = sessionDateInput.value;
+    const dateStr = normalizeToIsoDate(sessionDateInput.value) || getTodayStr();
     const surahName = sessionSurahSelect.value;
     const pageNumber = Number(sessionPageInput.value);
 
@@ -313,19 +313,25 @@ document.addEventListener('DOMContentLoaded', () => {
           : `<span class="status-badge present">حاضر اليوم</span>`;
       }
 
-      // حساب السورة التالية في الدور من جزء عم (تبدأ من الناس صعوداً)
+      // حساب إنجاز سور جزء عم
+      const completedSurahs = new Set(getStudentRecitations(student.id));
+      const totalSurahs = JUZ_AMMA_SURAHS.length;
+      const completedCount = completedSurahs.size;
+      const progressPercent = Math.round((completedCount / totalSurahs) * 100);
+
+      // حساب السورة التالية في الدور من جزء عم (تبدأ من النبأ صعوداً)
       const nextSurah = getNextSurahForStudent(student.id);
       const nextSurahText = nextSurah ? `سورة ${nextSurah.name}` : 'أتمت جزء عم كاملاً 🌟';
 
       // حساب آخر اختبار قدمه الطالب إن وجد
       const latestExam = getLatestStudentExam(student.id);
-      let latestExamBadgeHtml = '';
+      let latestExamChipHtml = '';
       if (latestExam) {
-        latestExamBadgeHtml = `
-          <div class="student-latest-exam-badge">
-            <span>🎓</span>
-            <span>آخر اختبار: <strong>${latestExam.examName}</strong> (${latestExam.result})</span>
-          </div>
+        latestExamChipHtml = `
+          <span class="chip-latest-exam">
+            <span>🎓 آخر اختبار:</span>
+            <strong>${latestExam.examName} (${latestExam.result}) - ${formatDateDMY(latestExam.date)}</strong>
+          </span>
         `;
       }
 
@@ -341,13 +347,26 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
           </div>
+          <button type="button" class="btn-card-delete btn-card-delete-corner" title="حذف الطالب"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg></button>
         </div>
 
-        <div class="student-next-surah-box">
-          <span style="color: var(--text-tertiary); font-weight: 600;">📖 السورة التالية في الدور:</span>
-          <span class="next-surah-tag">🎯 ${nextSurahText}</span>
+        <div class="student-card-progress-box">
+          <div class="student-card-progress-meta">
+            <span style="font-weight: 700; color: var(--text-secondary);">📖 إنجاز جزء عم:</span>
+            <span style="font-weight: 800; color: var(--primary);">${completedCount} / ${totalSurahs} سورة (${progressPercent}%)</span>
+          </div>
+          <div class="student-card-progress-track">
+            <div class="student-card-progress-fill" style="width: ${progressPercent}%;"></div>
+          </div>
         </div>
-        ${latestExamBadgeHtml}
+
+        <div class="student-card-chips-row">
+          <span class="chip-target-surah">
+            <span>🎯 السورة التالية:</span>
+            <strong>${nextSurahText}</strong>
+          </span>
+          ${latestExamChipHtml}
+        </div>
 
         <div class="student-card-actions-row">
           <button type="button" class="btn-card-recite" title="تسجيل تسميع سورة من جزء عم">
@@ -356,11 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </button>
           <button type="button" class="btn-card-exam" title="تسجيل تقديم اختبار للطالب">
             <span>📝</span>
-            <span>اختبار</span>
-          </button>
-          <button type="button" class="btn-card-delete" title="حذف الطالبة">
-            <span>🗑️</span>
-            <span>حذف</span>
+            <span>تسجيل اختبار</span>
           </button>
         </div>
       `;
@@ -371,10 +386,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // زر تسجيل التسميع من البطاقة مباشرة
-      card.querySelector('.btn-card-recite').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openRecitationModal(student);
-      });
+      const reciteBtn = card.querySelector('.btn-card-recite');
+      if (reciteBtn) {
+        reciteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openRecitationModal(student);
+        });
+      }
 
       // زر تسجيل الاختبار من البطاقة مباشرة
       const examBtn = card.querySelector('.btn-card-exam');
@@ -386,12 +404,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // زر الحذف من البطاقة مباشرة
-      card.querySelector('.btn-card-delete').addEventListener('click', (e) => {
-        e.stopPropagation();
-        currentSelectedStudent = student;
-        deleteStudentName.textContent = `"${student.fullName}"`;
-        openModal(deleteConfirmModal);
-      });
+      const delBtn = card.querySelector('.btn-card-delete');
+      if (delBtn) {
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentSelectedStudent = student;
+          deleteStudentName.textContent = `"${student.fullName}"`;
+          openModal(deleteConfirmModal);
+        });
+      }
 
       studentsListContainer.appendChild(card);
     });
@@ -451,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullName = studentNameInput.value.trim();
     const nationalId = studentIdInput.value.trim();
     const phone = studentPhoneInput.value.trim();
-    const birthDate = studentDobInput.value;
+    const birthDate = normalizeToIsoDate(studentDobInput.value);
     const birthPlace = studentBirthplaceInput.value.trim();
     const editId = studentEditId.value || null;
 
@@ -546,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('profile-student-name').textContent = student.fullName;
     document.getElementById('profile-national-id').textContent = student.nationalId;
     document.getElementById('profile-phone').textContent = student.phone || 'غير مسجل';
-    document.getElementById('profile-dob').textContent = student.birthDate || 'غير مسجل';
+    document.getElementById('profile-dob').textContent = student.birthDate ? formatDateDMY(student.birthDate) : 'غير مسجل';
     document.getElementById('profile-birthplace').textContent = student.birthPlace || 'غير مسجل';
 
     // عرض ومتابعة سور جزء عم
@@ -580,6 +601,162 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     openModal(profileModal);
+  }
+
+  // -------------------------------------------------------------
+  // عرض وسجل اختبارات الطالب داخل الملف الشخصي
+  // -------------------------------------------------------------
+      const EXAM_TRASH_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg>';
+
+  function renderProfileExams(student) {
+    const exams = getStudentExams(student.id);
+    const container = document.getElementById("profile-exams-list-container");
+    const title = document.getElementById("profile-exams-title");
+    if (!container || !title) return;
+
+    container.innerHTML = "";
+    title.textContent = `🎓 سجل الاختبارات (${exams.length}):`;
+
+    if (exams.length === 0) {
+      container.innerHTML = `
+        <div class="exams-empty-state">
+          لم يتم تسجيل أي اختبارات سابقة لهذا الطالب حتى الآن. يمكنك تسجيل اختبار جديد عبر زر <strong>➕ تسجيل اختبار جديد</strong> بالأعلى.
+        </div>
+      `;
+      return;
+    }
+
+    exams.forEach(exam => {
+      const card = document.createElement("div");
+      card.className = "profile-exam-card";
+      const formattedDate = formatDateDMY(exam.date);
+
+      const notesHtml = exam.notes ? (`
+        <div class="opt1-note-box">
+          <div class="opt1-note-title">💬 ملاحظة المعلم:</div>
+          <div class="opt1-note-content">${exam.notes}</div>
+        </div>
+      `) : "";
+
+      card.innerHTML = `
+        <div class="opt1-header-row">
+          <div class="opt1-title-area">
+            <div class="opt1-icon-badge">📜</div>
+            <div class="opt1-title-texts">
+              <div class="opt1-exam-name">${exam.examName}</div>
+              <div class="opt1-date-badge">📅 ${formattedDate}</div>
+            </div>
+          </div>
+          <div class="opt1-actions-left">
+            <div class="opt1-score-pill">
+              <span class="opt1-score-icon">🏆</span>
+              <span class="opt1-score-val">${exam.result}</span>
+              <span class="opt1-score-sub">درجة</span>
+            </div>
+            <button type="button" class="btn-exam-delete-corner" title="حذف هذا الاختبار">
+              ${EXAM_TRASH_SVG}
+            </button>
+          </div>
+        </div>
+        ${notesHtml}
+      `;
+
+      card.querySelector(".btn-exam-delete-corner").addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (window.confirm(`هل أنت متأكد من حذف نتيجة اختبار "${exam.examName}"؟`)) {
+          deleteStudentExam(student.id, exam.id);
+          renderProfileExams(student);
+          renderStudentsList();
+          showToast("تم حذف الاختبار بنجاح", "success");
+        }
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  const profileAddExamBtn = document.getElementById('profile-add-exam-btn');
+  if (profileAddExamBtn) {
+    profileAddExamBtn.addEventListener('click', () => {
+      if (currentSelectedStudent) {
+        openExamModal(currentSelectedStudent);
+      }
+    });
+  }
+
+  // -------------------------------------------------------------
+  // نافذة تسجيل اختبار لطالب (Exam Modal Controller)
+  // -------------------------------------------------------------
+  let currentExamStudent = null;
+  const examModal = document.getElementById('exam-modal');
+  const examStudentName = document.getElementById('exam-student-name');
+  const examNameInput = document.getElementById('exam-name-input');
+  const examResultInput = document.getElementById('exam-result-input');
+  const examDateInput = document.getElementById('exam-date-input');
+  const examNotesInput = document.getElementById('exam-notes-input');
+  const examForm = document.getElementById('exam-form');
+
+  function openExamModal(student) {
+    currentExamStudent = student;
+    examStudentName.textContent = student.fullName;
+    examNameInput.value = '';
+    examResultInput.value = '';
+    examDateInput.value = getTodayDMY();
+    examNotesInput.value = '';
+
+    document.querySelectorAll('#exam-modal .form-error-msg').forEach(el => el.classList.remove('visible'));
+
+    openModal(examModal);
+  }
+
+  // أزرار الاقتراحات السريعة لاسم الاختبار
+  document.querySelectorAll('#exam-quick-tags .quick-tag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      examNameInput.value = btn.dataset.tag;
+      examResultInput.focus();
+    });
+  });
+
+  if (examForm) {
+    examForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentExamStudent) return;
+
+      document.querySelectorAll('#exam-modal .form-error-msg').forEach(el => el.classList.remove('visible'));
+
+      const examName = examNameInput.value.trim();
+      const result = examResultInput.value.trim();
+      const date = normalizeToIsoDate(examDateInput.value) || getTodayStr();
+      const notes = examNotesInput.value.trim();
+
+      let hasError = false;
+      if (!examName) {
+        document.getElementById('exam-name-error').classList.add('visible');
+        hasError = true;
+      }
+      if (!result) {
+        document.getElementById('exam-result-error').classList.add('visible');
+        hasError = true;
+      }
+
+      if (hasError) return;
+
+      saveStudentExam(currentExamStudent.id, {
+        examName,
+        result,
+        date,
+        notes
+      });
+
+      closeModal(examModal);
+      renderStudentsList();
+
+      if (profileModal.classList.contains('active') && currentSelectedStudent && currentSelectedStudent.id === currentExamStudent.id) {
+        renderProfileExams(currentSelectedStudent);
+      }
+
+      showToast(`تم تسجيل اختبار "${examName}" للطالب بنجاح 🎓`, 'success');
+    });
   }
 
   // -------------------------------------------------------------
@@ -648,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
     nationalIdCounter.textContent = `${currentSelectedStudent.nationalId.length} / 9 أرقام`;
     nationalIdCounter.style.color = 'var(--success)';
     studentPhoneInput.value = currentSelectedStudent.phone;
-    studentDobInput.value = currentSelectedStudent.birthDate || '';
+    studentDobInput.value = currentSelectedStudent.birthDate ? formatDateDMY(currentSelectedStudent.birthDate) : '';
     studentBirthplaceInput.value = currentSelectedStudent.birthPlace || '';
 
     hideAllFormErrors();
@@ -792,7 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dates = getAllAttendanceDates();
     const students = getStudents();
     const studentMap = new Map(students.map(s => [s.id, s]));
-    const filterDate = filterHistoryDate.value;
+    const filterDate = normalizeToIsoDate(filterHistoryDate.value);
 
     historyCardsContainer.innerHTML = '';
 
@@ -870,6 +1047,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   filterHistoryDate.addEventListener('change', () => {
+    renderHistoryCards();
+  });
+  filterHistoryDate.addEventListener('input', () => {
     renderHistoryCards();
   });
 
@@ -1023,6 +1203,59 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // التشغيل الأولي للواجهات
+  
+  // -------------------------------------------------------------
+  // إدارة وتنسيق حقول التاريخ الذكية (DD/MM/YYYY Auto-mask & Calendar Picker)
+  // -------------------------------------------------------------
+  function maskDmy(inputStr) {
+    const digits = (inputStr || '').replace(/\D/g, '').slice(0, 8);
+    if (digits.length >= 5) {
+      return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+    } else if (digits.length >= 3) {
+      return digits.slice(0, 2) + '/' + digits.slice(2);
+    }
+    return digits;
+  }
+
+  function setupDateInputWrappers() {
+    document.querySelectorAll('.date-input-wrapper').forEach(wrapper => {
+      const textInput = wrapper.querySelector('.date-mask-input');
+      const pickerBtn = wrapper.querySelector('.date-picker-btn');
+      const hiddenPicker = wrapper.querySelector('.hidden-native-date');
+      if (!textInput || !pickerBtn || !hiddenPicker) return;
+
+      textInput.addEventListener('input', () => {
+        textInput.value = maskDmy(textInput.value);
+      });
+
+      textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && (textInput.value.length === 3 || textInput.value.length === 6)) {
+          textInput.value = textInput.value.slice(0, -1);
+        }
+      });
+
+      pickerBtn.addEventListener('click', () => {
+        const iso = normalizeToIsoDate(textInput.value) || getTodayStr();
+        hiddenPicker.value = iso;
+        if (typeof hiddenPicker.showPicker === 'function') {
+          hiddenPicker.showPicker();
+        } else {
+          hiddenPicker.click();
+        }
+      });
+
+      hiddenPicker.addEventListener('change', () => {
+        if (hiddenPicker.value) {
+          textInput.value = formatDateDMY(hiddenPicker.value);
+          textInput.dispatchEvent(new Event('input'));
+          textInput.dispatchEvent(new Event('change'));
+        }
+      });
+    });
+  }
+
+  setupDateInputWrappers();
+
   renderTodaySession();
   renderStudentsList();
 });

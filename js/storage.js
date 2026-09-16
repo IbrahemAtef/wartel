@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
   ATTENDANCE: 'maram_attendance_v1',
   THEME: 'maram_theme_v1',
   RECITATIONS: 'maram_recitations_v1',
-  EXAMS: 'wartel_exams_v1'
+  EXAMS: 'wartel_exams_v1',
+  EXAM_CARD_MODEL: 'wartel_exam_card_model_v1'
 };
 
 // دوال مساعدة للتاريخ
@@ -22,18 +23,56 @@ function getTodayStr() {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateArabic(dateStr) {
+// -------------------------------------------------------------
+// دوال مساعدة لتنسيق التواريخ بصيغة DD/MM/YYYY
+// -------------------------------------------------------------
+
+
+// تحويل أي تاريخ سواء كان DD/MM/YYYY أو YYYY-MM-DD إلى الصيغة المعيارية YYYY-MM-DD
+function normalizeToIsoDate(str) {
+  if (!str) return '';
+  str = str.trim();
+  const dmyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmyMatch) {
+    const day = dmyMatch[1].padStart(2, '0');
+    const month = dmyMatch[2].padStart(2, '0');
+    const year = dmyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+  return str;
+}
+
+function getTodayDMY() {
+  return formatDateDMY(getTodayStr());
+}
+
+function formatDateDMY(dateStr) {
+  if (!dateStr) return '-';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+  }
+  return dateStr;
+}
+
+function formatDateWithDay(dateStr) {
   if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-').map(Number);
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
   const date = new Date(year, month - 1, day);
-  
-  const options = {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  };
-  return date.toLocaleDateString('ar-SA', options);
+  const dayName = date.toLocaleDateString('ar-SA', { weekday: 'long' });
+  const dmy = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+  return `${dayName} ${dmy}`;
+}
+
+function formatDateArabic(dateStr) {
+  return formatDateWithDay(dateStr);
 }
 
 // استرجاع وحفظ البيانات العامة بأمان
@@ -109,7 +148,7 @@ function saveStudent(studentData) {
       fullName: studentData.fullName.trim(),
       nationalId: validation.cleanId,
       phone: (studentData.phone || '').trim(),
-      birthDate: studentData.birthDate || '',
+      birthDate: normalizeToIsoDate(studentData.birthDate) || '',
       birthPlace: (studentData.birthPlace || '').trim(),
       createdAt: new Date().toISOString()
     };
@@ -241,15 +280,16 @@ function getDailySession(dateStr = getTodayStr()) {
 }
 
 function saveDailySession(dateStr, sessionData) {
+  const cleanDate = normalizeToIsoDate(dateStr) || getTodayStr();
   const sessions = getAllSessions();
-  sessions[dateStr] = {
+  sessions[cleanDate] = {
     surahName: (sessionData.surahName || '').trim(),
     surahNumber: Number(sessionData.surahNumber) || 1,
     pageNumber: Number(sessionData.pageNumber) || 1,
     updatedAt: new Date().toISOString()
   };
   safeSet(STORAGE_KEYS.SESSIONS, sessions);
-  return sessions[dateStr];
+  return sessions[cleanDate];
 }
 
 // -------------------------------------------------------------
@@ -266,13 +306,14 @@ function getAttendance(dateStr = getTodayStr()) {
 }
 
 function saveAttendance(dateStr, absentStudentIds = []) {
+  const cleanDate = normalizeToIsoDate(dateStr) || getTodayStr();
   const all = getAllAttendance();
-  all[dateStr] = {
+  all[cleanDate] = {
     absentStudentIds: Array.from(new Set(absentStudentIds)),
     updatedAt: new Date().toISOString()
   };
   safeSet(STORAGE_KEYS.ATTENDANCE, all);
-  return all[dateStr];
+  return all[cleanDate];
 }
 
 function getAllAttendanceDates() {
@@ -441,7 +482,7 @@ function saveStudentExam(studentId, examData) {
     id: 'exam_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     examName: examData.examName.trim(),
     result: examData.result.trim(),
-    date: examData.date || getTodayStr(),
+    date: normalizeToIsoDate(examData.date) || getTodayStr(),
     notes: (examData.notes || '').trim(),
     timestamp: new Date().toISOString()
   };
@@ -564,4 +605,11 @@ function shouldShowBackupReminder() {
 
   const firstRunTime = new Date(firstRunStr).getTime();
   return (Date.now() - firstRunTime) >= THIRTY_DAYS_MS;
+}
+
+function getExamCardModel() {
+  return localStorage.getItem(STORAGE_KEYS.EXAM_CARD_MODEL) || 'model-1';
+}
+function setExamCardModel(m) {
+  localStorage.setItem(STORAGE_KEYS.EXAM_CARD_MODEL, m);
 }
