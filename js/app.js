@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // حقول نافذة المقرر
   const sessionForm = document.getElementById('session-form');
-  const sessionDateInput = document.getElementById('session-date-input');
   const sessionSurahSelect = document.getElementById('session-surah-select');
   const sessionPageInput = document.getElementById('session-page-input');
 
@@ -168,9 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
   sessionSurahSelect.addEventListener('change', () => {
     const selectedOption = sessionSurahSelect.options[sessionSurahSelect.selectedIndex];
     if (selectedOption && selectedOption.dataset.startPage) {
-      if (!sessionPageInput.value || Number(sessionPageInput.value) <= 1) {
-        sessionPageInput.value = selectedOption.dataset.startPage;
-      }
+      sessionPageInput.value = selectedOption.dataset.startPage;
+    } else {
+      sessionPageInput.value = '';
     }
   });
 
@@ -200,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   openSessionModalBtn.addEventListener('click', () => {
     const today = getTodayStr();
-    sessionDateInput.value = getTodayDMY();
     const session = getDailySession(today);
 
     if (session) {
@@ -215,21 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal(sessionModal);
   });
 
-  sessionDateInput.addEventListener('change', () => {
-    const targetDate = normalizeToIsoDate(sessionDateInput.value);
-    const session = getDailySession(targetDate);
-    if (session) {
-      sessionSurahSelect.value = session.surahName;
-      sessionPageInput.value = session.pageNumber;
-    } else {
-      sessionSurahSelect.value = '';
-      sessionPageInput.value = '';
-    }
-  });
+
 
   sessionForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const dateStr = normalizeToIsoDate(sessionDateInput.value) || getTodayStr();
+    const dateStr = getTodayStr();
     const surahName = sessionSurahSelect.value;
     const pageNumber = Number(sessionPageInput.value);
 
@@ -347,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
           </div>
-          <button type="button" class="btn-card-delete btn-card-delete-corner" title="حذف الطالب"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg></button>
+          <button type="button" class="btn-card-delete btn-card-delete-corner" title="حذف الطالب"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg></button>
         </div>
 
         <div class="student-card-progress-box">

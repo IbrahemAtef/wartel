@@ -81,7 +81,9 @@
 }
 
 /* إعادة الضبط والأساسيات */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -108,7 +110,8 @@ body {
 }
 
 /* إتاحة تحديد النصوص في الحقول فقط */
-input, textarea {
+input,
+textarea {
   user-select: text;
   -webkit-user-select: text;
 }
@@ -232,8 +235,17 @@ input, textarea {
 }
 
 @keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
 }
 
 /* محتوى الصفحة الرئيسي */
@@ -872,8 +884,15 @@ input, textarea {
 }
 
 @keyframes pulseSurah {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.03);
+  }
 }
 
 .next-surah-highlight-card {
@@ -926,8 +945,15 @@ input, textarea {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .view-top-bar {
@@ -1142,7 +1168,8 @@ input, textarea {
   font-weight: 500;
 }
 
-.form-input, .form-select {
+.form-input,
+.form-select {
   width: 100%;
   min-height: 48px;
   padding: 10px 14px;
@@ -1157,7 +1184,8 @@ input, textarea {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.form-input:focus, .form-select:focus {
+.form-input:focus,
+.form-select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
@@ -1329,8 +1357,15 @@ input, textarea {
 }
 
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* شريط التمرير المخصص */
@@ -1338,13 +1373,16 @@ input, textarea {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--surface-border-subtle);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-glow);
 }
@@ -1356,7 +1394,8 @@ input, textarea {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 1050; /* فوق أي نوافذ أخرى */
+  z-index: 1050;
+  /* فوق أي نوافذ أخرى */
 }
 
 .modal-alert-box {
@@ -1401,8 +1440,17 @@ input, textarea {
 }
 
 @keyframes pulseWarning {
-  0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(244, 63, 94, 0.25); }
-  50% { transform: scale(1.08); box-shadow: 0 12px 30px rgba(244, 63, 94, 0.45); }
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 8px 24px rgba(244, 63, 94, 0.25);
+  }
+
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 12px 30px rgba(244, 63, 94, 0.45);
+  }
 }
 
 .delete-dialog-title {
@@ -1619,7 +1667,8 @@ input, textarea {
 
 .date-input-wrapper .date-mask-input {
   width: 100%;
-  padding-left: 44px !important; /* مساحة لزر التقويم على اليسار في RTL */
+  padding-left: 44px !important;
+  /* مساحة لزر التقويم على اليسار في RTL */
   padding-right: 14px !important;
   font-family: inherit;
   font-size: 0.95rem;
@@ -1673,8 +1722,9 @@ input, textarea {
    ============================================================ */
 
 .btn-card-delete-corner {
-  width: 38px;
-  height: 38px;
+  padding: 0 !important;
+  width: 40px;
+  height: 40px;
   background: var(--danger-light);
   color: var(--danger);
   border: 1px solid rgba(225, 29, 72, 0.2);
@@ -1689,10 +1739,10 @@ input, textarea {
 }
 
 .btn-card-delete-corner svg {
-  width: 15px;
-  height: 15px;
+  width: 24px;
+  height: 24px;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 2.3;
 }
 
 .btn-card-delete-corner:hover {
