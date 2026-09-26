@@ -1814,3 +1814,422 @@ textarea {
   align-items: center;
   gap: 4px;
 }
+
+/* ============================================================
+   شريط التبديل بين العرض الكامل وعرض الاسم فقط (Option 2)
+   ============================================================ */
+.students-view-toggle-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.view-toggle-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-toggle-btn-group {
+  display: flex;
+  background: var(--bg-primary);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border-subtle);
+  gap: 4px;
+}
+
+.view-toggle-btn-group button {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-toggle-btn-group button.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+/* تنسيق النموذج الثاني: عرض الاسم فقط (Name-Only Collapsed) */
+.view-name-only .student-card {
+  padding: 10px 16px;
+  border-radius: 14px;
+  gap: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.view-name-only .student-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.view-name-only .student-subinfo span:first-child, /* إخفاء رقم الهوية */
+.view-name-only .btn-card-delete-corner,          /* إخفاء زر الحذف في العرض المختصر */
+.view-name-only .student-card-progress-box,       /* إخفاء شريط التقدم */
+.view-name-only .student-card-chips-row,          /* إخفاء شارة السورة التالية وآخر اختبار */
+.view-name-only .student-card-actions-row {       /* إخفاء أزرار الإجراءات */
+  display: none !important;
+}
+
+.view-name-only .student-card-top-row {
+  width: 100%;
+}
+
+.view-name-only .student-name {
+  font-size: 1.05rem;
+}
+
+.view-name-only .student-avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+}
+
+
+/* تنسيق مجموعة الإحصائيات مع زر التبديل */
+.stats-and-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stats-badges-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.view-toggle-btn-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.view-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.view-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary-gradient);
+  color: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+}
+
+.toggle-btn-icon {
+  font-size: 0.95rem;
+}
+
+
+/* ============================================================
+   UI/UX Pro Max: شريط الإحصائيات والتبديل (سطرين مريحين وعصريين)
+   ============================================================ */
+.search-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* السطر الأول: إجمالي الطلاب وشارات الحضور والغياب */
+.students-stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 2px;
+}
+
+.stats-total-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.stats-icon {
+  font-size: 1rem;
+}
+
+.stats-attendance-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+}
+
+.stats-badge.badge-present {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--surface-border-subtle);
+}
+
+.stats-badge.badge-absent {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid rgba(225, 29, 72, 0.25);
+}
+
+/* السطر الثاني: شريط نمط عرض البطاقات */
+.students-view-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: var(--shadow-sm);
+  gap: 12px;
+}
+
+.toggle-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.toggle-label-icon {
+  font-size: 0.95rem;
+}
+
+.view-toggle-pill-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.view-toggle-pill {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.view-toggle-pill:hover:not(.active) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.view-toggle-pill.active {
+  background: var(--primary-gradient);
+  color: #ffffff !important;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
+  transform: scale(1.02);
+}
+
+.pill-icon {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .students-view-toggle-row {
+    padding: 8px 10px;
+  }
+  .view-toggle-pill {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+
+/* ============================================================
+   UI/UX Pro Max: بطاقة اختيار تاريخ الغياب (Attendance Date Control)
+   ============================================================ */
+.attendance-date-control-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.attendance-date-input-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.attendance-date-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.date-icon {
+  font-size: 1.05rem;
+}
+
+.attendance-date-fields {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attendance-date-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--surface-border-subtle);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.attendance-date-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.attendance-today-btn {
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-border-subtle);
+  color: var(--primary);
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.attendance-today-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.attendance-today-btn:active {
+  transform: scale(0.96);
+}
+
+.attendance-stats-summary-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-primary);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.date-display-text {
+  color: var(--text-secondary);
+}
+
+.pill-divider {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.absent-count-text {
+  color: var(--danger);
+  font-weight: 800;
+}
+
+@media (max-width: 480px) {
+  .attendance-date-input-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .attendance-date-fields {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .attendance-date-input {
+    flex: 1;
+  }
+}

@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
   THEME: 'maram_theme_v1',
   RECITATIONS: 'maram_recitations_v1',
   EXAMS: 'wartel_exams_v1',
-  EXAM_CARD_MODEL: 'wartel_exam_card_model_v1'
+  EXAM_CARD_MODEL: 'wartel_exam_card_model_v1',
+  CARD_VIEW_MODE: 'wartel_student_card_view_mode_v1'
 };
 
 // دوال مساعدة للتاريخ
@@ -111,11 +112,14 @@ function getStudentById(id) {
 
 function validateNationalId(nationalId, excludeStudentId = null) {
   const cleanId = String(nationalId || '').trim();
+  if (!cleanId) {
+    return { valid: true, cleanId: '' };
+  }
   if (!/^\d{9}$/.test(cleanId)) {
-    return { valid: false, message: 'رقم الهوية يجب أن يتكون من 9 أرقام بالضبط.' };
+    return { valid: false, message: 'رقم الهوية (إن وُجد) يجب أن يتكون من 9 أرقام بالضبط.' };
   }
   const students = getStudents();
-  const duplicate = students.find(s => s.nationalId === cleanId && s.id !== excludeStudentId);
+  const duplicate = students.find(s => s.nationalId && s.nationalId === cleanId && s.id !== excludeStudentId);
   if (duplicate) {
     return { valid: false, message: `رقم الهوية مسجل مسبقاً للطالب: ${duplicate.fullName}` };
   }
@@ -136,7 +140,12 @@ function saveStudent(studentData) {
     students[index] = {
       ...students[index],
       ...studentData,
+      fullName: studentData.fullName.trim(),
       nationalId: validation.cleanId,
+      residence: (studentData.residence || '').trim(),
+      phone: (studentData.phone || '').trim(),
+      birthDate: normalizeToIsoDate(studentData.birthDate) || '',
+      birthPlace: (studentData.birthPlace || '').trim(),
       updatedAt: new Date().toISOString()
     };
     safeSet(STORAGE_KEYS.STUDENTS, students);
@@ -147,6 +156,7 @@ function saveStudent(studentData) {
       id: 'std_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       fullName: studentData.fullName.trim(),
       nationalId: validation.cleanId,
+      residence: (studentData.residence || '').trim(),
       phone: (studentData.phone || '').trim(),
       birthDate: normalizeToIsoDate(studentData.birthDate) || '',
       birthPlace: (studentData.birthPlace || '').trim(),
@@ -274,9 +284,22 @@ function getAllSessions() {
   return safeGet(STORAGE_KEYS.SESSIONS, {});
 }
 
+function getLatestRecordedSession() {
+  const sessions = getAllSessions();
+  const dates = Object.keys(sessions).sort((a, b) => b.localeCompare(a));
+  if (dates.length === 0) return null;
+  return sessions[dates[0]] || null;
+}
+
 function getDailySession(dateStr = getTodayStr()) {
   const sessions = getAllSessions();
-  return sessions[dateStr] || null;
+  if (sessions[dateStr]) {
+    return sessions[dateStr];
+  }
+  if (dateStr === getTodayStr()) {
+    return getLatestRecordedSession();
+  }
+  return null;
 }
 
 function saveDailySession(dateStr, sessionData) {
@@ -605,6 +628,14 @@ function shouldShowBackupReminder() {
 
   const firstRunTime = new Date(firstRunStr).getTime();
   return (Date.now() - firstRunTime) >= THIRTY_DAYS_MS;
+}
+
+function getCardViewMode() {
+  return localStorage.getItem(STORAGE_KEYS.CARD_VIEW_MODE) || 'name-only';
+}
+
+function setCardViewMode(mode) {
+  localStorage.setItem(STORAGE_KEYS.CARD_VIEW_MODE, mode);
 }
 
 function getExamCardModel() {

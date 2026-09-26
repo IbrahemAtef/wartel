@@ -112,17 +112,40 @@
           <button type="button" id="clear-search-btn" class="search-clear-btn" aria-label="مسح البحث">✕</button>
         </div>
 
-        <div class="search-stats-bar">
-          <span id="stats-total-students">إجمالي الطلاب: 0</span>
-          <div style="display: flex; gap: 8px;">
-            <span class="stats-count-badge" id="stats-present-count">حاضر: 0</span>
-            <span class="stats-count-badge" id="stats-absent-count" style="color: var(--danger);">غياب: 0</span>
+        <!-- شريط الإحصائيات (السطر الأول) -->
+        <div class="students-stats-row">
+          <div class="stats-total-chip">
+            <span class="stats-icon">👥</span>
+            <span id="stats-total-students">إجمالي الطلاب: 0</span>
+          </div>
+          <div class="stats-attendance-badges">
+            <span class="stats-badge badge-present" id="stats-present-count">حاضر: 0</span>
+            <span class="stats-badge badge-absent" id="stats-absent-count">غياب: 0</span>
+          </div>
+        </div>
+
+        <!-- شريط التبديل بين أنماط البطاقة (السطر الثاني) -->
+        <div class="students-view-toggle-row">
+          <span class="toggle-row-label">
+            <span class="toggle-label-icon">👁️</span>
+            <span>عرض البطاقات:</span>
+          </span>
+          <div class="view-toggle-pill-group" id="card-view-toggle-bar">
+            <button type="button" id="btn-view-full" class="view-toggle-pill" title="عرض بطاقة الطالب بكافة التفاصيل والإجراءات">
+              <span class="pill-icon">📑</span>
+              <span>كاملة</span>
+            </button>
+            <button type="button" id="btn-view-nameonly" class="view-toggle-pill active" title="عرض سريع للاسم وحالة الحضور فقط">
+              <span class="pill-icon">👤</span>
+              <span>الاسم فقط</span>
+            </button>
           </div>
         </div>
       </section>
 
+      
       <!-- قائمة الطلاب -->
-      <section class="students-list" id="students-list-container" aria-label="قائمة طلاب الحلقة">
+      <section class="students-list view-name-only" id="students-list-container" aria-label="قائمة طلاب الحلقة">
         <!-- يتم ملء بطاقات الطلاب ديناميكياً -->
       </section>
 
@@ -226,26 +249,30 @@
 
           <div class="form-group">
             <label class="form-label" for="student-id-input">
-              <span>رقم الهوية الوطنية *</span>
+              <span>رقم الهوية الوطنية (اختياري)</span>
               <span class="hint" id="national-id-counter">9 أرقام بالضبط</span>
             </label>
-            <input type="tel" id="student-id-input" class="form-input" placeholder="مثال: 109283746" maxlength="9" pattern="\d{9}" inputmode="numeric" required>
+            <input type="tel" id="student-id-input" class="form-input" placeholder="مثال: 109283746 (اختياري)" maxlength="9" inputmode="numeric">
             <div class="form-error-msg" id="student-id-error">رقم الهوية يجب أن يتكون من 9 أرقام بالضبط وبدون تكرار.</div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="student-phone-input">رقم الجوال *</label>
-            <input type="tel" id="student-phone-input" class="form-input" placeholder="مثال: 0551234567" inputmode="tel" required>
+            <label class="form-label" for="student-phone-input">رقم الجوال (اختياري)</label>
+            <input type="tel" id="student-phone-input" class="form-input" placeholder="مثال: 0551234567" inputmode="tel">
             <div class="form-error-msg" id="student-phone-error">يرجى إدخال رقم جوال صحيح للتواصل والواتساب.</div>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="student-dob-input">تاريخ الميلاد</label>
+            <label class="form-label" for="student-dob-input">تاريخ الميلاد (اختياري)</label>
             <input type="date" id="student-dob-input" class="form-input">
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="student-birthplace-input">مكان الميلاد</label>
+            <label class="form-label" for="student-residence-input">مكان السكن (اختياري)</label>
+            <input type="text" id="student-residence-input" class="form-input" placeholder="مثال: حي الروضة، الرياض..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="student-birthplace-input">مكان الميلاد (اختياري)</label>
             <input type="text" id="student-birthplace-input" class="form-input" placeholder="مثال: الرياض، جدة، مكة..." autocomplete="off">
           </div>
         </div>
@@ -287,6 +314,10 @@
             <span class="profile-meta-value" id="profile-dob">-</span>
           </div>
 
+          <div class="profile-meta-box">
+            <span class="profile-meta-label">مكان السكن</span>
+            <span class="profile-meta-value" id="profile-residence">-</span>
+          </div>
           <div class="profile-meta-box">
             <span class="profile-meta-label">مكان الميلاد</span>
             <span class="profile-meta-value" id="profile-birthplace">-</span>
@@ -363,9 +394,26 @@
       </div>
 
       <div class="modal-body">
-        <div class="attendance-summary-header">
-          <span id="attendance-date-label">تاريخ: -</span>
-          <span id="attendance-count-label" style="color: var(--danger);">الغياب: 0</span>
+        <!-- اختيار تاريخ الغياب مع زر اليوم السريع (UI/UX Pro Max) -->
+        <div class="attendance-date-control-card">
+          <div class="attendance-date-input-group">
+            <label class="attendance-date-label" for="attendance-date-input">
+              <span class="date-icon">📅</span>
+              <span>تاريخ رصد الغياب:</span>
+            </label>
+            <div class="attendance-date-fields">
+              <input type="date" id="attendance-date-input" class="attendance-date-input" aria-label="تاريخ الغياب">
+              <button type="button" id="attendance-today-btn" class="attendance-today-btn" title="الرجوع الفوري لتاريخ اليوم">
+                <span>⚡</span>
+                <span>اليوم</span>
+              </button>
+            </div>
+          </div>
+          <div class="attendance-stats-summary-pill">
+            <span id="attendance-date-label" class="date-display-text">اليوم</span>
+            <span class="pill-divider">•</span>
+            <span id="attendance-count-label" class="absent-count-text">الغياب: 0</span>
+          </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin: 2px 0;">

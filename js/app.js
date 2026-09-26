@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const studentPhoneInput = document.getElementById('student-phone-input');
   const studentDobInput = document.getElementById('student-dob-input');
   const studentBirthplaceInput = document.getElementById('student-birthplace-input');
+  const studentResidenceInput = document.getElementById('student-residence-input');
 
   // حقول نافذة الغياب
   const attendanceModalHeading = document.getElementById('attendance-modal-heading');
@@ -330,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="student-texts">
               <div class="student-name">${student.fullName}</div>
               <div class="student-subinfo">
-                <span>هوية: ${student.nationalId}</span>
+                <span>${student.nationalId ? "هوية: " + student.nationalId : "هوية غير مسجلة"}</span>
                 ${statusBadgeHtml}
               </div>
             </div>
@@ -444,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     studentPhoneInput.value = '';
     studentDobInput.value = '';
     studentBirthplaceInput.value = '';
+    if (studentResidenceInput) studentResidenceInput.value = '';
 
     hideAllFormErrors();
     openModal(studentModal);
@@ -460,27 +462,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullName = studentNameInput.value.trim();
     const nationalId = studentIdInput.value.trim();
     const phone = studentPhoneInput.value.trim();
+    const residence = studentResidenceInput ? studentResidenceInput.value.trim() : '';
     const birthDate = normalizeToIsoDate(studentDobInput.value);
     const birthPlace = studentBirthplaceInput.value.trim();
     const editId = studentEditId.value || null;
 
     let hasError = false;
 
+    // الاسم فقط هو الإجباري
     if (!fullName || fullName.length < 3) {
       document.getElementById('student-name-error').classList.add('visible');
       hasError = true;
     }
 
+    // رقم الهوية اختياري، لكن إن كُتب يجب أن يكون 9 أرقام وفريد
     const idCheck = validateNationalId(nationalId, editId);
     if (!idCheck.valid) {
       const idErrorEl = document.getElementById('student-id-error');
       idErrorEl.textContent = idCheck.message;
       idErrorEl.classList.add('visible');
-      hasError = true;
-    }
-
-    if (!phone || phone.length < 9) {
-      document.getElementById('student-phone-error').classList.add('visible');
       hasError = true;
     }
 
@@ -491,6 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
         id: editId,
         fullName,
         nationalId: idCheck.cleanId,
+        residence,
         phone,
         birthDate,
         birthPlace
@@ -553,7 +554,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function openStudentProfile(student) {
     currentSelectedStudent = student;
     document.getElementById('profile-student-name').textContent = student.fullName;
-    document.getElementById('profile-national-id').textContent = student.nationalId;
+    document.getElementById('profile-national-id').textContent = student.nationalId || 'غير مسجل';
+    const resEl = document.getElementById('profile-residence');
+    if (resEl) resEl.textContent = student.residence || 'غير مسجل';
     document.getElementById('profile-phone').textContent = student.phone || 'غير مسجل';
     document.getElementById('profile-dob').textContent = student.birthDate ? formatDateDMY(student.birthDate) : 'غير مسجل';
     document.getElementById('profile-birthplace').textContent = student.birthPlace || 'غير مسجل';
@@ -815,6 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
     studentPhoneInput.value = currentSelectedStudent.phone;
     studentDobInput.value = currentSelectedStudent.birthDate ? formatDateDMY(currentSelectedStudent.birthDate) : '';
     studentBirthplaceInput.value = currentSelectedStudent.birthPlace || '';
+    if (studentResidenceInput) studentResidenceInput.value = currentSelectedStudent.residence || '';
 
     hideAllFormErrors();
     openModal(studentModal);
@@ -848,18 +852,56 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------------------------------------------
   // 9. نافذة تسجيل غياب اليوم / تعديل غياب يوم سابق
   // -------------------------------------------------------------
+  const attendanceDateInput = document.getElementById('attendance-date-input');
+  const attendanceTodayBtn = document.getElementById('attendance-today-btn');
+
   function openAttendanceModalForDate(dateStr) {
-    currentTargetAttendanceDate = dateStr;
-    const isToday = dateStr === getTodayStr();
+    currentTargetAttendanceDate = normalizeToIsoDate(dateStr) || getTodayStr();
+    const isToday = currentTargetAttendanceDate === getTodayStr();
 
-    attendanceModalHeading.textContent = isToday ? 'تسجيل غياب اليوم' : 'تعديل غياب يوم سابق';
-    attendanceDateLabel.textContent = `التاريخ: ${formatDateArabic(dateStr)}`;
+    if (attendanceDateInput) {
+      attendanceDateInput.value = currentTargetAttendanceDate;
+    }
 
-    const currentAttendance = getAttendance(dateStr);
+    attendanceModalHeading.textContent = isToday ? 'تسجيل غياب اليوم' : 'تسجيل وتعديل الغياب';
+    attendanceDateLabel.textContent = isToday ? `اليوم (${formatDateArabic(currentTargetAttendanceDate)})` : formatDateArabic(currentTargetAttendanceDate);
+
+    const currentAttendance = getAttendance(currentTargetAttendanceDate);
     tempAbsentIds = new Set(currentAttendance ? currentAttendance.absentStudentIds : []);
 
     renderAttendancePickerItems();
     openModal(attendanceModal);
+  }
+
+  // عند تغيير التاريخ من التقويم في نافذة الغياب: تحميل غياب ذلك اليوم فوراً
+  if (attendanceDateInput) {
+    attendanceDateInput.addEventListener('change', () => {
+      const selectedDate = normalizeToIsoDate(attendanceDateInput.value) || getTodayStr();
+      currentTargetAttendanceDate = selectedDate;
+      const isToday = currentTargetAttendanceDate === getTodayStr();
+
+      attendanceModalHeading.textContent = isToday ? 'تسجيل غياب اليوم' : 'تسجيل وتعديل الغياب';
+      attendanceDateLabel.textContent = isToday ? `اليوم (${formatDateArabic(currentTargetAttendanceDate)})` : formatDateArabic(currentTargetAttendanceDate);
+
+      const currentAttendance = getAttendance(currentTargetAttendanceDate);
+      tempAbsentIds = new Set(currentAttendance ? currentAttendance.absentStudentIds : []);
+      renderAttendancePickerItems();
+    });
+  }
+
+  // زر العودة الفورية لتاريخ اليوم
+  if (attendanceTodayBtn) {
+    attendanceTodayBtn.addEventListener('click', () => {
+      const today = getTodayStr();
+      if (attendanceDateInput) attendanceDateInput.value = today;
+      currentTargetAttendanceDate = today;
+      attendanceModalHeading.textContent = 'تسجيل غياب اليوم';
+      attendanceDateLabel.textContent = `اليوم (${formatDateArabic(today)})`;
+
+      const currentAttendance = getAttendance(today);
+      tempAbsentIds = new Set(currentAttendance ? currentAttendance.absentStudentIds : []);
+      renderAttendancePickerItems();
+    });
   }
 
   openAttendanceTodayBtn.addEventListener('click', () => {
@@ -1241,6 +1283,35 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  
+  // -------------------------------------------------------------
+  // تبديل نمط عرض بطاقات الطلاب (النموذج 2: كاملة / الاسم فقط)
+  // -------------------------------------------------------------
+  const btnViewFull = document.getElementById('btn-view-full');
+  const btnViewNameOnly = document.getElementById('btn-view-nameonly');
+
+  function applyCardViewMode(mode) {
+    if (mode === 'name-only') {
+      studentsListContainer.classList.add('view-name-only');
+      if (btnViewNameOnly) btnViewNameOnly.classList.add('active');
+      if (btnViewFull) btnViewFull.classList.remove('active');
+    } else {
+      studentsListContainer.classList.remove('view-name-only');
+      if (btnViewFull) btnViewFull.classList.add('active');
+      if (btnViewNameOnly) btnViewNameOnly.classList.remove('active');
+    }
+    setCardViewMode(mode);
+  }
+
+  if (btnViewFull && btnViewNameOnly) {
+    btnViewFull.addEventListener('click', () => applyCardViewMode('full'));
+    btnViewNameOnly.addEventListener('click', () => applyCardViewMode('name-only'));
+  }
+
+  // تطبيق النمط المحفوظ أو الافتراضي (الاسم فقط)
+  const savedViewMode = getCardViewMode();
+  applyCardViewMode(savedViewMode);
 
   setupDateInputWrappers();
 
