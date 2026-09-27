@@ -275,12 +275,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // -------------------------------------------------------------
   function renderStudentsList() {
     const students = getStudents();
+    const sortedStudents = [...students].sort(compareStudentsByAchievement);
+
+    // خريطة المراكز العامة للطلاب بناءً على إنجاز الدورات
+    const studentRankMap = new Map();
+    sortedStudents.forEach((student, index) => {
+      studentRankMap.set(student.id, index + 1);
+    });
+
     const query = (searchInput.value || '').trim().toLowerCase();
     const today = getTodayStr();
     const todayAttendance = getAttendance(today);
     const absentIds = new Set(todayAttendance ? todayAttendance.absentStudentIds : []);
 
-    const filtered = students.filter(s => s.fullName.toLowerCase().includes(query));
+    const filtered = sortedStudents.filter(s => s.fullName.toLowerCase().includes(query));
 
     // تحديث شريط الإحصائيات
     statsTotalStudents.textContent = `إجمالي الطلاب: ${students.length}`;
@@ -311,9 +319,23 @@ document.addEventListener('DOMContentLoaded', () => {
     filtered.forEach(student => {
       const isAbsent = absentIds.has(student.id);
       const isAttendanceRecorded = !!todayAttendance;
+      const rank = studentRankMap.get(student.id);
+
+      let rankBadgeHtml = '';
+      let cardRankClass = '';
+      if (rank === 1) {
+        cardRankClass = 'card-rank-1';
+        rankBadgeHtml = `<span class="student-rank-badge rank-1" title="المركز الأول في إنجاز الدورات"><span class="rank-medal">🥇</span><span class="rank-title">الأول</span></span>`;
+      } else if (rank === 2) {
+        cardRankClass = 'card-rank-2';
+        rankBadgeHtml = `<span class="student-rank-badge rank-2" title="المركز الثاني في إنجاز الدورات"><span class="rank-medal">🥈</span><span class="rank-title">الثاني</span></span>`;
+      } else if (rank === 3) {
+        cardRankClass = 'card-rank-3';
+        rankBadgeHtml = `<span class="student-rank-badge rank-3" title="المركز الثالث في إنجاز الدورات"><span class="rank-medal">🥉</span><span class="rank-title">الثالث</span></span>`;
+      }
 
       const card = document.createElement('div');
-      card.className = `student-card ${isAttendanceRecorded ? (isAbsent ? 'is-absent' : 'is-present') : ''}`;
+      card.className = `student-card ${cardRankClass} ${isAttendanceRecorded ? (isAbsent ? 'is-absent' : 'is-present') : ''}`;
 
       // الحرف الأول كأيقونة
       const firstChar = student.fullName.trim().charAt(0) || 'ط';
@@ -357,7 +379,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="student-info-col">
             <div class="student-avatar">${firstChar}</div>
             <div class="student-texts">
-              <div class="student-name">${student.fullName}</div>
+              <div class="student-name">
+                <span class="student-name-text">${student.fullName}</span>
+                ${rankBadgeHtml}
+              </div>
               <div class="student-subinfo">
                 <span>${student.nationalId ? "هوية: " + student.nationalId : "هوية غير مسجلة"}</span>
                 ${courseBadgeHtml}
@@ -756,7 +781,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openStudentProfile(student) {
     currentSelectedStudent = student;
-    document.getElementById('profile-student-name').textContent = student.fullName;
+
+    // حساب مرتبة الطالب بين زملائه في إنجاز الدورات
+    const rank = getStudentAchievementRank(student.id);
+    let rankBadgeHtml = '';
+    if (rank === 1) {
+      rankBadgeHtml = `<span class="student-rank-badge rank-1" style="margin-right: 8px;"><span class="rank-medal">🥇</span><span class="rank-title">المركز الأول</span></span>`;
+    } else if (rank === 2) {
+      rankBadgeHtml = `<span class="student-rank-badge rank-2" style="margin-right: 8px;"><span class="rank-medal">🥈</span><span class="rank-title">المركز الثاني</span></span>`;
+    } else if (rank === 3) {
+      rankBadgeHtml = `<span class="student-rank-badge rank-3" style="margin-right: 8px;"><span class="rank-medal">🥉</span><span class="rank-title">المركز الثالث</span></span>`;
+    }
+
+    const nameEl = document.getElementById('profile-student-name');
+    if (nameEl) {
+      nameEl.innerHTML = `${student.fullName} ${rankBadgeHtml}`;
+    }
     document.getElementById('profile-national-id').textContent = student.nationalId || 'غير مسجل';
     const resEl = document.getElementById('profile-residence');
     if (resEl) resEl.textContent = student.residence || 'غير مسجل';

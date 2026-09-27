@@ -275,6 +275,105 @@ function isCourseCompletedForStudent(studentId, courseId) {
   return course.surahs.every(s => completedIds.has(s.id));
 }
 
+// -------------------------------------------------------------
+// حساب إنجازات الطلاب وترتيبهم حسب مسار الدورات (Course Achievement Ranking)
+// -------------------------------------------------------------
+
+/**
+ * حساب درجة ونقاط إنجاز الطالب في الدورات القرآنية للترتيب التراكمي:
+ * 1. الدورة التمهيدية تعلو الدورة التأهيلية في سلم الإنجاز
+ * 2. عدد السور المنجزة في الدورة الحالية
+ * 3. إجمالي السور المنجزة في كافة الدورات
+ */
+function getStudentCourseAchievementData(student) {
+  if (!student) {
+    return {
+      courseLevel: 0,
+      completedInCourse: 0,
+      totalSurahsInCourse: 0,
+      progressPercent: 0,
+      totalCompletedOverall: 0
+    };
+  }
+
+  const course = getStudentActiveCourse(student);
+  const courseSurahs = course.surahs || (typeof JUZ_AMMA_SURAHS !== 'undefined' ? JUZ_AMMA_SURAHS : []);
+  const completedIds = new Set(getStudentRecitations(student.id));
+
+  const completedInCourse = courseSurahs.filter(s => completedIds.has(s.id)).length;
+  const isCurrentCourseFinished = courseSurahs.length > 0 && completedInCourse === courseSurahs.length;
+
+  // المستوى التراكمي للدورة:
+  // - 3: أتم الدورة التمهيدية (أعلى مرتبة حالياً)
+  // - 2: مسجل في الدورة التمهيدية (قد سمع)
+  // - 1.9: أتم الدورة التأهيلية بالكامل (37 سورة) وبانتظار الترقية
+  // - 1: مسجل في الدورة التأهيلية (عم)
+  let courseLevel = 1;
+  if (course.id === 'course_tamheedi_qad_sami') {
+    courseLevel = isCurrentCourseFinished ? 3 : 2;
+  } else if (isCurrentCourseFinished) {
+    courseLevel = 1.9;
+  }
+
+  const totalCompletedOverall = completedIds.size;
+  const progressPercent = courseSurahs.length > 0 ? Math.round((completedInCourse / courseSurahs.length) * 100) : 0;
+
+  return {
+    courseLevel,
+    completedInCourse,
+    totalSurahsInCourse: courseSurahs.length,
+    progressPercent,
+    totalCompletedOverall
+  };
+}
+
+/**
+ * دالة مقارنة وترتيب الطلاب حسب الإنجاز في الدورات:
+ * 1. الأولوية الأولى: مستوى الدورة التراكمي (التمهيدية أولاً)
+ * 2. الأولوية الثانية: عدد السور المنجزة في الدورة الحالية (الأعلى أولاً)
+ * 3. الأولوية الثالثة: إجمالي عدد السور المنجزة عامة (الأعلى أولاً)
+ * 4. كسر التعادل: الترتيب الأبجدي حسب اسم الطالب (أ - ي)
+ */
+function compareStudentsByAchievement(a, b) {
+  const achA = getStudentCourseAchievementData(a);
+  const achB = getStudentCourseAchievementData(b);
+
+  // 1. مستوى الدورة التراكمي
+  if (achB.courseLevel !== achA.courseLevel) {
+    return achB.courseLevel - achA.courseLevel;
+  }
+
+  // 2. عدد السور المنجزة في الدورة الحالية
+  if (achB.completedInCourse !== achA.completedInCourse) {
+    return achB.completedInCourse - achA.completedInCourse;
+  }
+
+  // 3. إجمالي السور المنجزة في جميع الدورات
+  if (achB.totalCompletedOverall !== achA.totalCompletedOverall) {
+    return achB.totalCompletedOverall - achA.totalCompletedOverall;
+  }
+
+  // 4. معيار كسر التعادل: أبجدياً حسب اسم الطالب
+  return (a.fullName || '').localeCompare(b.fullName || '', 'ar');
+}
+
+/**
+ * الحصول على قائمة الطلاب مرتبة من الأعلى إنجازاً إلى الأقل
+ */
+function getStudentsSortedByAchievement() {
+  const students = getStudents();
+  return [...students].sort(compareStudentsByAchievement);
+}
+
+/**
+ * الحصول على الترتيب الفعلي للطالب بين زملائه (1-based rank)
+ */
+function getStudentAchievementRank(studentId) {
+  const sorted = getStudentsSortedByAchievement();
+  const idx = sorted.findIndex(s => s.id === studentId);
+  return idx !== -1 ? idx + 1 : null;
+}
+
 function getAllRecitations() {
   return safeGet(STORAGE_KEYS.RECITATIONS, {});
 }

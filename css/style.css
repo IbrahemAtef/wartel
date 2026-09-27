@@ -674,6 +674,13 @@ textarea {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.student-name-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2753,3 +2760,136 @@ textarea {
   color: var(--primary) !important;
   font-weight: 800 !important;
 }
+
+/* ============================================================ */
+/* شارات ومؤشرات المراكز الأولى للطلاب (UI/UX Pro Max)          */
+/* ============================================================ */
+
+.student-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  user-select: none;
+  vertical-align: middle;
+}
+
+.student-rank-badge:hover {
+  transform: scale(1.05);
+}
+
+.student-rank-badge .rank-medal {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* المركز الأول - ذهب ووهج ناعم */
+.student-rank-badge.rank-1 {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.14));
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  color: #b45309;
+}
+
+[data-theme="dark"] .student-rank-badge.rank-1 {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.2));
+  border-color: rgba(251, 191, 36, 0.65);
+  color: #fde68a;
+  text-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
+}
+
+.card-rank-1 {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.12), var(--shadow-md) !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, var(--surface) 100%) !important;
+}
+
+.card-rank-1:hover {
+  border-color: #f59e0b !important;
+  box-shadow: 0 12px 30px rgba(245, 158, 11, 0.22) !important;
+}
+
+.card-rank-1 .student-avatar {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #ffffff !important;
+  border-color: #fcd34d !important;
+  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35) !important;
+}
+
+/* المركز الثاني - فضة أنيقة وناعمة */
+.student-rank-badge.rank-2 {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.22), rgba(100, 116, 139, 0.14));
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  color: #475569;
+}
+
+[data-theme="dark"] .student-rank-badge.rank-2 {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.28), rgba(100, 116, 139, 0.2));
+  border-color: rgba(203, 213, 225, 0.55);
+  color: #e2e8f0;
+  text-shadow: 0 1px 4px rgba(148, 163, 184, 0.35);
+}
+
+.card-rank-2 {
+  border-color: rgba(148, 163, 184, 0.42) !important;
+  box-shadow: 0 6px 20px rgba(148, 163, 184, 0.1), var(--shadow-md) !important;
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.05) 0%, var(--surface) 100%) !important;
+}
+
+.card-rank-2:hover {
+  border-color: #94a3b8 !important;
+  box-shadow: 0 12px 30px rgba(148, 163, 184, 0.2) !important;
+}
+
+.card-rank-2 .student-avatar {
+  background: linear-gradient(135deg, #94a3b8, #64748b) !important;
+  color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 3px 12px rgba(148, 163, 184, 0.3) !important;
+}
+
+/* المركز الثالث - برونز أصيل */
+.student-rank-badge.rank-3 {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.18), rgba(180, 83, 9, 0.12));
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  color: #92400e;
+}
+
+[data-theme="dark"] .student-rank-badge.rank-3 {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(180, 83, 9, 0.18));
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fed7aa;
+  text-shadow: 0 1px 4px rgba(217, 119, 6, 0.35);
+}
+
+.card-rank-3 {
+  border-color: rgba(217, 119, 6, 0.38) !important;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.09), var(--shadow-md) !important;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.04) 0%, var(--surface) 100%) !important;
+}
+
+.card-rank-3:hover {
+  border-color: #d97706 !important;
+  box-shadow: 0 12px 30px rgba(217, 119, 6, 0.18) !important;
+}
+
+.card-rank-3 .student-avatar {
+  background: linear-gradient(135deg, #b45309, #78350f) !important;
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 3px 12px rgba(180, 83, 9, 0.25) !important;
+}
+
+/* توافق نمط عرض الاسم فقط مع شارات المراكز */
+.view-name-only .student-rank-badge {
+  padding: 1px 7px;
+  font-size: 0.7rem;
+}
+
