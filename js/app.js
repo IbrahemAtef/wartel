@@ -69,14 +69,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const attendancePickerList = document.getElementById('attendance-picker-list');
   const saveAttendanceBtn = document.getElementById('save-attendance-btn');
 
-  // سجل الأيام السابقة
+  // سجل الأيام السابقة (UI/UX Pro Max)
   const historyCardsContainer = document.getElementById('history-cards-container');
   const filterHistoryDate = document.getElementById('filter-history-date');
+  const clearHistoryDateBtn = document.getElementById('clear-history-date-btn');
+  const historyTotalDays = document.getElementById('history-total-days');
+  const historyAvgRate = document.getElementById('history-avg-rate');
+  const historyFilterPills = document.querySelectorAll('.history-pill');
+  const deleteAttendanceConfirmModal = document.getElementById('delete-attendance-confirm-modal');
+  const deleteAttendanceTargetDate = document.getElementById('delete-attendance-target-date');
+  const confirmDeleteAttendanceBtn = document.getElementById('confirm-delete-attendance-btn');
 
   // متغيرات حالة تفاعلية
   let currentTargetAttendanceDate = getTodayStr();
   let tempAbsentIds = new Set();
   let currentSelectedStudent = null;
+  let currentHistoryFilter = 'all'; // 'all' | 'with-absent' | 'all-present'
+  let pendingDeleteAttendanceDate = null;
 
   // -------------------------------------------------------------
   // 1. نظام المظهر (Dark / Light Theme)
@@ -978,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // -------------------------------------------------------------
-  // 10. شاشة سجل الغياب للأيام السابقة
+  // 10. شاشة سجل الغياب للأيام السابقة (UI/UX Pro Max)
   // -------------------------------------------------------------
   goToHistoryBtn.addEventListener('click', () => {
     homeView.style.display = 'none';
@@ -995,32 +1004,141 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
+  function updateHistoryPillsUI() {
+    if (!historyFilterPills) return;
+    historyFilterPills.forEach(pill => {
+      if (pill.dataset.filter === currentHistoryFilter) {
+        pill.classList.add('active');
+        pill.setAttribute('aria-selected', 'true');
+      } else {
+        pill.classList.remove('active');
+        pill.setAttribute('aria-selected', 'false');
+      }
+    });
+  }
+
+  if (historyFilterPills) {
+    historyFilterPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        currentHistoryFilter = pill.dataset.filter || 'all';
+        updateHistoryPillsUI();
+        renderHistoryCards();
+      });
+    });
+  }
+
   function renderHistoryCards() {
     const dates = getAllAttendanceDates();
     const students = getStudents();
     const studentMap = new Map(students.map(s => [s.id, s]));
-    const filterDate = normalizeToIsoDate(filterHistoryDate.value);
+    const filterDate = filterHistoryDate ? normalizeToIsoDate(filterHistoryDate.value) : '';
+
+    // إظهار أو إخفاء زر مسح تاريخ البحث
+    if (clearHistoryDateBtn) {
+      clearHistoryDateBtn.style.display = filterDate ? 'flex' : 'none';
+    }
+
+    // 1. حساب الإحصائيات العامة لكافة الأيام المسجلة
+    if (historyTotalDays) {
+      historyTotalDays.textContent = dates.length;
+    }
+    if (historyAvgRate) {
+      if (dates.length === 0 || students.length === 0) {
+        historyAvgRate.textContent = '0%';
+      } else {
+        let totalRatesSum = 0;
+        dates.forEach(d => {
+          const att = getAttendance(d);
+          const abs = att && Array.isArray(att.absentStudentIds) ? att.absentStudentIds.length : 0;
+          const pres = Math.max(0, students.length - abs);
+          totalRatesSum += (pres / students.length) * 100;
+        });
+        const overallAvg = Math.round(totalRatesSum / dates.length);
+        historyAvgRate.textContent = `${overallAvg}%`;
+      }
+    }
 
     historyCardsContainer.innerHTML = '';
 
-    const displayedDates = filterDate ? dates.filter(d => d === filterDate) : dates;
-
-    if (displayedDates.length === 0) {
+    // 2. حالة عدم وجود أي أيام مسجلة على الإطلاق
+    if (dates.length === 0) {
       historyCardsContainer.innerHTML = `
-        <div class="empty-list-placeholder">
-          <div class="empty-icon">🗂️</div>
-          <div class="empty-title">لا توجد سجلات غياب مسجلة ${filterDate ? 'لهذا التاريخ' : 'حتى الآن'}</div>
-          <div style="font-size: 0.85rem;">عند تسجيل غياب الأيام ستظهر تلقائياً هنا بالتفصيل</div>
+        <div class="empty-list-placeholder history-empty-state">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">لا توجد أيام مسجلة في سجل الحضور حتى الآن</div>
+          <div class="empty-desc">
+            يظهر في هذا السجل فقط الأيام التي يتم فيها رصد الحضور وحفظه من قِبل المعلم
+          </div>
+          <button type="button" class="btn btn-primary" id="history-empty-record-btn" style="min-height: 42px; padding: 8px 22px; margin-top: 6px;">
+            <span>📋</span>
+            <span>تسجيل غياب اليوم الآن</span>
+          </button>
         </div>
       `;
+      const emptyBtn = document.getElementById('history-empty-record-btn');
+      if (emptyBtn) {
+        emptyBtn.addEventListener('click', () => {
+          openAttendanceModalForDate(getTodayStr());
+        });
+      }
       return;
     }
 
-    displayedDates.forEach(dateStr => {
+    // 3. تطبيق الفلترة (تاريخ + نوع السجل)
+    let filteredDates = dates;
+    if (filterDate) {
+      filteredDates = filteredDates.filter(d => d === filterDate);
+    }
+    if (currentHistoryFilter === 'with-absent') {
+      filteredDates = filteredDates.filter(d => {
+        const att = getAttendance(d);
+        return att && Array.isArray(att.absentStudentIds) && att.absentStudentIds.length > 0;
+      });
+    } else if (currentHistoryFilter === 'all-present') {
+      filteredDates = filteredDates.filter(d => {
+        const att = getAttendance(d);
+        return !att || !Array.isArray(att.absentStudentIds) || att.absentStudentIds.length === 0;
+      });
+    }
+
+    // 4. حالة وجود أيام ولكن الفلتر لم يُرجع أي نتيجة
+    if (filteredDates.length === 0) {
+      historyCardsContainer.innerHTML = `
+        <div class="empty-list-placeholder history-empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">لا توجد سجلات تطابق الفلترة المحددة</div>
+          <div class="empty-desc">
+            ${filterDate ? `لم يُسجل حضور لتاريخ ${formatDateArabic(filterDate)}` : 'لا توجد أيام مسجلة تطابق التبويب المختار'}
+          </div>
+          <button type="button" class="btn btn-secondary" id="history-reset-filter-btn" style="min-height: 40px; padding: 6px 18px; margin-top: 6px;">
+            <span>🔄</span>
+            <span>إعادة ضبط الفلاتر وعرض الكل</span>
+          </button>
+        </div>
+      `;
+      const resetBtn = document.getElementById('history-reset-filter-btn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          if (filterHistoryDate) filterHistoryDate.value = '';
+          currentHistoryFilter = 'all';
+          updateHistoryPillsUI();
+          renderHistoryCards();
+        });
+      }
+      return;
+    }
+
+    // 5. بناء بطاقات الأيام المسجلة (UI/UX Pro Max)
+    filteredDates.forEach(dateStr => {
       const attendance = getAttendance(dateStr);
       const session = getDailySession(dateStr);
-      const absentIds = attendance ? attendance.absentStudentIds : [];
+      const absentIds = attendance && Array.isArray(attendance.absentStudentIds) ? attendance.absentStudentIds : [];
       const hasAbsent = absentIds.length > 0;
+      const absentCount = absentIds.length;
+      const totalStudentsCount = students.length;
+      const presentCount = Math.max(0, totalStudentsCount - absentCount);
+      const attendanceRate = totalStudentsCount > 0 ? Math.round((presentCount / totalStudentsCount) * 100) : 100;
+      const rateClass = attendanceRate === 100 ? 'rate-perfect' : (attendanceRate >= 80 ? 'rate-high' : (attendanceRate >= 50 ? 'rate-medium' : 'rate-low'));
 
       const card = document.createElement('div');
       card.className = 'history-card';
@@ -1030,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionText = `سورة ${session.surahName} - صفحة ${session.pageNumber}`;
       }
 
-      // تجهيز وسوم أسماء الغائبين
+      // وسوم أسماء الطلاب الغائبين
       let absentNamesHtml = '';
       if (hasAbsent) {
         absentNamesHtml = absentIds.map(id => {
@@ -1039,21 +1157,45 @@ document.addEventListener('DOMContentLoaded', () => {
           return `<span class="student-chip-tag absent-tag">👤 ${name}</span>`;
         }).join('');
       } else {
-        absentNamesHtml = `<span style="font-size: 0.85rem; color: var(--success); font-weight: 700;">🌟 حضور كامل لجميع طلاب الحلقة بدون غياب!</span>`;
+        absentNamesHtml = `<div class="history-all-present-msg">🌟 حضور كامل لجميع طلاب الحلقة (${presentCount} طالب) بدون غياب!</div>`;
       }
 
       card.innerHTML = `
         <div class="history-card-header">
-          <div>
-            <div class="history-card-date">${formatDateArabic(dateStr)}</div>
+          <div class="history-card-date-info">
+            <div class="history-card-date">
+              <span class="history-date-icon">📅</span>
+              <span>${formatDateArabic(dateStr)}</span>
+            </div>
             <div class="history-session-info">
               <span>📖</span>
               <span>${sessionText}</span>
             </div>
           </div>
-          <span class="history-absent-badge ${hasAbsent ? 'has-absent' : 'no-absent'}">
-            ${hasAbsent ? `الغياب: ${absentIds.length}` : 'حضور كامل'}
-          </span>
+          <div class="history-card-badges">
+            <span class="history-rate-chip ${rateClass}">
+              <span class="rate-icon">${attendanceRate === 100 ? '🌟' : '📊'}</span>
+              <span>${attendanceRate}%</span>
+            </span>
+            <span class="history-absent-badge ${hasAbsent ? 'has-absent' : 'no-absent'}">
+              ${hasAbsent ? `غياب: ${absentCount}` : 'حضور كامل'}
+            </span>
+          </div>
+        </div>
+
+        <div class="history-metrics-row">
+          <div class="history-metric-item metric-present">
+            <span class="metric-dot">🟢</span>
+            <span>حاضر: <strong>${presentCount}</strong></span>
+          </div>
+          <div class="history-metric-item metric-absent ${hasAbsent ? 'has-count' : ''}">
+            <span class="metric-dot">🔴</span>
+            <span>غائب: <strong>${absentCount}</strong></span>
+          </div>
+          <div class="history-metric-item metric-total">
+            <span class="metric-dot">👥</span>
+            <span>الإجمالي: <strong>${totalStudentsCount}</strong></span>
+          </div>
         </div>
 
         <div class="history-absent-names-list">
@@ -1061,27 +1203,70 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div class="history-card-footer">
-          <button type="button" class="btn btn-secondary edit-history-btn" style="padding: 6px 14px; min-height: 38px; font-size: 0.85rem;">
+          <button type="button" class="btn btn-secondary edit-history-btn" style="padding: 7px 16px; min-height: 40px; font-size: 0.85rem;">
             <span>✏️</span>
             <span>تعديل غياب هذا اليوم</span>
+          </button>
+          <button type="button" class="btn btn-outline-danger delete-history-btn" style="padding: 7px 16px; min-height: 40px; font-size: 0.85rem;">
+            <span>🗑️</span>
+            <span>حذف سجل اليوم</span>
           </button>
         </div>
       `;
 
+      // أحداث أزرار البطاقة
       card.querySelector('.edit-history-btn').addEventListener('click', () => {
         openAttendanceModalForDate(dateStr);
+      });
+
+      card.querySelector('.delete-history-btn').addEventListener('click', () => {
+        pendingDeleteAttendanceDate = dateStr;
+        if (deleteAttendanceTargetDate) {
+          deleteAttendanceTargetDate.textContent = formatDateArabic(dateStr);
+        }
+        openModal(deleteAttendanceConfirmModal);
       });
 
       historyCardsContainer.appendChild(card);
     });
   }
 
-  filterHistoryDate.addEventListener('change', () => {
-    renderHistoryCards();
-  });
-  filterHistoryDate.addEventListener('input', () => {
-    renderHistoryCards();
-  });
+  // مستمعات تصفية التاريخ والبحث
+  if (filterHistoryDate) {
+    filterHistoryDate.addEventListener('change', () => {
+      renderHistoryCards();
+    });
+    filterHistoryDate.addEventListener('input', () => {
+      renderHistoryCards();
+    });
+  }
+
+  if (clearHistoryDateBtn) {
+    clearHistoryDateBtn.addEventListener('click', () => {
+      if (filterHistoryDate) filterHistoryDate.value = '';
+      clearHistoryDateBtn.style.display = 'none';
+      renderHistoryCards();
+    });
+  }
+
+  // تأكيد حذف سجل حضور يوم
+  if (confirmDeleteAttendanceBtn) {
+    confirmDeleteAttendanceBtn.addEventListener('click', () => {
+      if (!pendingDeleteAttendanceDate) return;
+      const targetDate = pendingDeleteAttendanceDate;
+      const deleted = deleteAttendance(targetDate);
+      closeModal(deleteAttendanceConfirmModal);
+      pendingDeleteAttendanceDate = null;
+
+      if (deleted) {
+        if (targetDate === getTodayStr()) {
+          renderStudentsList();
+        }
+        renderHistoryCards();
+        showToast(`تم حذف سجل يوم ${formatDateArabic(targetDate)} بنجاح 🗑️`, 'success');
+      }
+    });
+  }
 
   // -------------------------------------------------------------
   // 11. إشعارات Toast التفاعلية

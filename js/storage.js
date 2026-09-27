@@ -339,9 +339,23 @@ function saveAttendance(dateStr, absentStudentIds = []) {
   return all[cleanDate];
 }
 
+function deleteAttendance(dateStr) {
+  const cleanDate = normalizeToIsoDate(dateStr);
+  if (!cleanDate) return false;
+  const all = getAllAttendance();
+  if (all[cleanDate]) {
+    delete all[cleanDate];
+    safeSet(STORAGE_KEYS.ATTENDANCE, all);
+    return true;
+  }
+  return false;
+}
+
 function getAllAttendanceDates() {
   const all = getAllAttendance();
-  return Object.keys(all).sort((a, b) => b.localeCompare(a)); // من الأحدث للأقدم
+  return Object.keys(all)
+    .filter(d => all[d] && Array.isArray(all[d].absentStudentIds))
+    .sort((a, b) => b.localeCompare(a)); // من الأحدث للأقدم
 }
 
 function getStudentAbsenceHistory(studentId) {

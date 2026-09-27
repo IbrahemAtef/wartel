@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -163,10 +163,41 @@
         </button>
       </div>
 
-      <!-- تصفية حسب التاريخ في صفحة السجل -->
-      <div class="search-input-wrapper">
+      <!-- شريط إحصائيات السجل (UI/UX Pro Max) -->
+      <div class="history-stats-bar" id="history-stats-bar">
+        <div class="history-stat-chip">
+          <span class="history-stat-icon">📅</span>
+          <span>الأيام المرصودة:</span>
+          <strong id="history-total-days">0</strong>
+        </div>
+        <div class="history-stat-chip">
+          <span class="history-stat-icon">📊</span>
+          <span>متوسط الحضور:</span>
+          <strong id="history-avg-rate">0%</strong>
+        </div>
+      </div>
+
+      <!-- تصفية حسب التاريخ في صفحة السجل مع زر مسح -->
+      <div class="search-input-wrapper history-search-wrapper">
         <span class="search-icon">📅</span>
-        <input type="date" id="filter-history-date" class="search-input" style="padding-right: 44px;">
+        <input type="date" id="filter-history-date" class="search-input" aria-label="تصفية حسب تاريخ محدد">
+        <button type="button" id="clear-history-date-btn" class="search-clear-btn" aria-label="مسح تصفية التاريخ">✕</button>
+      </div>
+
+      <!-- أزرار الفلترة السريعة (Filter Pills) -->
+      <div class="history-filter-pills" id="history-filter-pills" role="tablist" aria-label="تصفية نوع السجلات">
+        <button type="button" class="history-pill active" data-filter="all" role="tab" aria-selected="true">
+          <span class="pill-icon">📌</span>
+          <span>الكل</span>
+        </button>
+        <button type="button" class="history-pill" data-filter="with-absent" role="tab" aria-selected="false">
+          <span class="pill-icon">⚠️</span>
+          <span>بها غياب</span>
+        </button>
+        <button type="button" class="history-pill" data-filter="all-present" role="tab" aria-selected="false">
+          <span class="pill-icon">🌟</span>
+          <span>حضور كامل</span>
+        </button>
       </div>
 
       <!-- حاوية بطاقات الأيام السابقة -->
@@ -502,6 +533,36 @@
           <span>نعم، تأكيد الحذف النهائي</span>
         </button>
         <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="delete-confirm-modal">
+          <span>تراجع وإلغاء</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. نافذة تأكيد حذف سجل حضور يوم (Centered Alert Modal) -->
+  <div class="modal-overlay modal-centered" id="delete-attendance-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-attendance-dialog-title">
+    <div class="modal-alert-box">
+      <div class="delete-icon-badge">
+        <span class="delete-icon-symbol">🗑️</span>
+      </div>
+
+      <h3 class="delete-dialog-title" id="delete-attendance-dialog-title">تأكيد حذف سجل الحضور</h3>
+      
+      <p class="delete-dialog-desc">
+        هل أنت متأكد من رغبتك في حذف سجل حضور وغياب يوم <span id="delete-attendance-target-date" class="delete-student-highlight"></span> نهائياً؟
+      </p>
+
+      <div class="delete-alert-warning">
+        <span style="font-size: 1.1rem;">⚠️</span>
+        <span>سيتم حذف هذا السجل ولن يظهر هذا اليوم في سجل الأيام السابقة.</span>
+      </div>
+
+      <div class="delete-dialog-actions">
+        <button type="button" class="btn btn-danger-solid btn-block" id="confirm-delete-attendance-btn">
+          <span>🗑️</span>
+          <span>نعم، حذف سجل هذا اليوم</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="delete-attendance-confirm-modal">
           <span>تراجع وإلغاء</span>
         </button>
       </div>
