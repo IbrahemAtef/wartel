@@ -302,17 +302,88 @@
             <label class="form-label" for="student-residence-input">مكان السكن (اختياري)</label>
             <input type="text" id="student-residence-input" class="form-input" placeholder="مثال: حي الروضة، الرياض..." autocomplete="off">
           </div>
-          <div class="form-group">
+          <div class="form-group" id="student-birthplace-group">
             <label class="form-label" for="student-birthplace-input">مكان الميلاد (اختياري)</label>
             <input type="text" id="student-birthplace-input" class="form-input" placeholder="مثال: الرياض، جدة، مكة..." autocomplete="off">
+          </div>
+
+          <div class="form-group" id="student-course-group" style="display: none;">
+            <label class="form-label" for="student-course-select">
+              <span>الدورة القرآنية المسجل بها</span>
+              <span class="hint">مسار الطالب</span>
+            </label>
+            <select id="student-course-select" class="form-select">
+              <option value="course_taheeli_amma">الدورة التأهيلية (جزء عم - 37 سورة)</option>
+              <option value="course_tamheedi_qad_sami">الدورة التمهيدية (جزء قد سمع - 9 سور)</option>
+            </select>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary btn-block" id="student-save-btn">حفظ بيانات الطالب</button>
+          <button type="submit" class="btn btn-primary btn-block" id="student-save-btn">حفظ ومتابعة لاختيار الدورة ⬅️</button>
           <button type="button" class="btn btn-secondary close-modal-btn" data-modal="student-modal">إلغاء</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 2.1 نافذة اختيار الدورة القرآنية للطالب الجديد (Course Enrollment Modal) -->
+  <div class="modal-overlay modal-centered" id="course-select-modal" role="dialog" aria-modal="true" aria-labelledby="course-select-modal-title">
+    <div class="modal-alert-box course-select-box">
+      <div class="course-modal-badge">
+        <span>🎓</span>
+      </div>
+      <h3 class="modal-title" id="course-select-modal-title" style="text-align: center; margin-bottom: 4px;">
+        تحديد الدورة القرآنية للطالب
+      </h3>
+      <p class="course-select-subtitle">
+        اختر الدورة التي سيبدأ بها الطالب <strong id="course-select-student-name"></strong>:
+      </p>
+
+      <div class="course-cards-options" id="course-cards-options">
+        <!-- الخيار 1: الدورة التأهيلية (جزء عم) -->
+        <div class="course-option-card active" data-course="course_taheeli_amma" id="opt-course-taheeli">
+          <div class="course-card-radio">
+            <span class="radio-circle"></span>
+          </div>
+          <div class="course-card-content">
+            <div class="course-card-top">
+              <span class="course-card-icon">📖</span>
+              <div class="course-card-title">الدورة التأهيلية (جزء عم)</div>
+              <span class="course-card-badge">37 سورة</span>
+            </div>
+            <p class="course-card-desc">
+              يبدأ الطالب بالتسميع والحفظ من سور جزء عم (من سورة النبأ حتى سورة الناس).
+            </p>
+          </div>
+        </div>
+
+        <!-- الخيار 2: الدورة التمهيدية (جزء قد سمع) -->
+        <div class="course-option-card" data-course="course_tamheedi_qad_sami" id="opt-course-tamheedi">
+          <div class="course-card-radio">
+            <span class="radio-circle"></span>
+          </div>
+          <div class="course-card-content">
+            <div class="course-card-top">
+              <span class="course-card-icon">🎓</span>
+              <div class="course-card-title">الدورة التمهيدية (جزء قد سمع)</div>
+              <span class="course-card-badge">9 سور</span>
+            </div>
+            <p class="course-card-desc">
+              للطالب الذي أتم جزء عم؛ يُعتمد إتمامه للدورة التأهيلية ويبدأ فوراً من جزء قد سمع (من سورة المجادلة حتى سورة التحريم).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="course-select-actions">
+        <button type="button" class="btn btn-primary btn-block" id="confirm-course-select-btn">
+          <span>تأكيد تسجيل الدورة وحفظ الطالب ✓</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-block" id="cancel-course-select-btn">
+          <span>رجوع لتعديل البيانات ↩</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -353,26 +424,57 @@
             <span class="profile-meta-label">مكان الميلاد</span>
             <span class="profile-meta-value" id="profile-birthplace">-</span>
           </div>
+          <div class="profile-meta-box highlight-course-box">
+            <span class="profile-meta-label">الدورة النشطة</span>
+            <span class="profile-meta-value highlight-course" id="profile-current-course">-</span>
+          </div>
         </div>
 
-        <!-- متابعة سور جزء عم قبل سجل الغياب -->
-        <div class="profile-juz-amma-section">
-          <div class="profile-section-header">
-            <div>
-              <div class="profile-history-title">📖 متابعة سور جزء عم (37 سورة)</div>
-              <div class="profile-section-subtitle">يبدأ التسميع من سورة النبأ حتى سورة الناس</div>
+        <!-- متابعة الدورات القرآنية والتسميع (UI/UX Pro Max) -->
+        <div class="profile-courses-tracker-section">
+          <!-- تبويبات الدورات القرآنية للطالب -->
+          <div class="profile-course-tabs" id="profile-course-tabs" role="tablist">
+            <button type="button" class="course-tab-btn active" id="tab-btn-taheeli" data-course="course_taheeli_amma" role="tab">
+              <span class="tab-icon">📖</span>
+              <span class="tab-title">الدورة التأهيلية (عم)</span>
+              <span class="tab-status-chip" id="tab-status-taheeli">الحالية 🎯</span>
+            </button>
+            <button type="button" class="course-tab-btn" id="tab-btn-tamheedi" data-course="course_tamheedi_qad_sami" role="tab">
+              <span class="tab-icon">🎓</span>
+              <span class="tab-title">الدورة التمهيدية (قد سمع)</span>
+              <span class="tab-status-chip" id="tab-status-tamheedi">غير مسجل</span>
+            </button>
+          </div>
+
+          <div class="profile-course-content-card">
+            <div class="profile-section-header">
+              <div>
+                <div class="profile-history-title" id="profile-course-title">📖 الدورة التأهيلية (جزء عم)</div>
+                <div class="profile-section-subtitle" id="profile-course-subtitle">يبدأ التسميع من سورة النبأ حتى سورة الناس</div>
+              </div>
+              <span class="juz-progress-badge" id="profile-juz-progress">0 / 37</span>
             </div>
-            <span class="juz-progress-badge" id="profile-juz-progress">0 / 37</span>
-          </div>
 
-          <!-- شريط تقدم بصري -->
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="profile-juz-progress-bar" style="width: 0%;"></div>
-          </div>
+            <!-- شريط تقدم بصري -->
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="profile-juz-progress-bar" style="width: 0%;"></div>
+            </div>
 
-          <!-- شبكة سور جزء عم الـ 37 -->
-          <div class="juz-surahs-grid" id="profile-juz-surahs-grid">
-            <!-- يتم ملء السور الـ 37 ديناميكياً مع تمييز المسمعة والتالية -->
+            <!-- إشعار وبانر ترقية الطالب للدورة التالية -->
+            <div id="course-promotion-banner" class="course-promotion-banner" style="display: none;">
+              <div class="promotion-msg">
+                <span>🌟</span>
+                <span><strong>مبارك!</strong> أتم الطالب كافة سور الدورة التأهيلية بنجاح.</span>
+              </div>
+              <button type="button" class="btn btn-gold btn-sm" id="promote-student-btn">
+                <span>🎓 ترقية للدورة التمهيدية (قد سمع)</span>
+              </button>
+            </div>
+
+            <!-- شبكة سور الدورة المحددة -->
+            <div class="juz-surahs-grid" id="profile-juz-surahs-grid">
+              <!-- يتم ملء السور ديناميكياً مع تمييز المسمعة والتالية -->
+            </div>
           </div>
         </div>
 
@@ -472,21 +574,24 @@
       <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 12px;">
         <h3 class="modal-title" id="recitation-modal-title" style="font-size: 1.1rem;">
           <span>📖</span>
-          <span>تسجيل تسميع سورة (جزء عم)</span>
+          <span id="recitation-modal-heading">تسجيل تسميع سورة</span>
         </h3>
         <button type="button" class="icon-btn close-modal-btn" data-modal="recitation-modal" aria-label="إغلاق">✕</button>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 14px; padding: 10px 0;">
-        <div style="background: var(--bg-primary); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--surface-border-subtle);">
-          <span style="font-size: 0.75rem; color: var(--text-tertiary);">الطالب/ة:</span>
-          <div id="recitation-student-name" style="font-size: 1.05rem; font-weight: 800; color: var(--primary);"></div>
+        <div style="background: var(--bg-primary); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--surface-border-subtle); display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-size: 0.75rem; color: var(--text-tertiary);">الطالب:</span>
+            <div id="recitation-student-name" style="font-size: 1.05rem; font-weight: 800; color: var(--primary);"></div>
+          </div>
+          <span class="history-absent-badge no-absent" id="recitation-course-badge" style="font-size: 0.76rem;">التأهيلية (عم)</span>
         </div>
 
         <div class="next-surah-highlight-card" id="recitation-suggested-box">
           <div style="font-size: 0.78rem; font-weight: 700; color: var(--accent-gold);">🎯 السورة التالية المقررة في الدور:</div>
           <div id="recitation-suggested-name" style="font-size: 1.25rem; font-weight: 900; color: var(--text-primary); margin: 4px 0;">سورة النبأ</div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary);">يبدأ جزء عم من سورة النبأ حتى سورة الناس</div>
+          <div id="recitation-course-hint" style="font-size: 0.75rem; color: var(--text-secondary);">الدورة التأهيلية (جزء عم)</div>
         </div>
 
         <div class="form-group">

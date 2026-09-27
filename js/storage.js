@@ -142,6 +142,8 @@ function saveStudent(studentData) {
       ...studentData,
       fullName: studentData.fullName.trim(),
       nationalId: validation.cleanId,
+      currentCourseId: studentData.currentCourseId || students[index].currentCourseId || 'course_taheeli_amma',
+      completedCourseIds: studentData.completedCourseIds || students[index].completedCourseIds || (studentData.currentCourseId === 'course_tamheedi_qad_sami' ? ['course_taheeli_amma'] : []),
       residence: (studentData.residence || '').trim(),
       phone: (studentData.phone || '').trim(),
       birthDate: normalizeToIsoDate(studentData.birthDate) || '',
@@ -156,6 +158,8 @@ function saveStudent(studentData) {
       id: 'std_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       fullName: studentData.fullName.trim(),
       nationalId: validation.cleanId,
+      currentCourseId: studentData.currentCourseId || 'course_taheeli_amma',
+      completedCourseIds: studentData.completedCourseIds || (studentData.currentCourseId === 'course_tamheedi_qad_sami' ? ['course_taheeli_amma'] : []),
       residence: (studentData.residence || '').trim(),
       phone: (studentData.phone || '').trim(),
       birthDate: normalizeToIsoDate(studentData.birthDate) || '',
@@ -166,6 +170,12 @@ function saveStudent(studentData) {
     // ترتيب أبجدي تلقائي
     students.sort((a, b) => a.fullName.localeCompare(b.fullName, 'ar'));
     safeSet(STORAGE_KEYS.STUDENTS, students);
+
+    // إذا سجل في الدورة التمهيدية (جزء قد سمع) مباشرة، نعتمد إتمامه لجزء عم تلقائياً
+    if (newStudent.currentCourseId === 'course_tamheedi_qad_sami') {
+      markAmmaAsCompletedForStudent(newStudent.id);
+    }
+
     return newStudent;
   }
 }
@@ -206,8 +216,64 @@ function deleteStudent(studentId) {
 }
 
 // -------------------------------------------------------------
-// إدارة ومتابعة تسميع سور جزء عم (Juz' Amma Recitation Tracker)
+// إدارة الدورات ومتابعة التسميع (Quran Courses & Recitation Tracker)
 // -------------------------------------------------------------
+
+function getSurahDetailsById(surahId) {
+  const sId = Number(surahId);
+  let surah = (typeof JUZ_AMMA_SURAHS !== 'undefined' ? JUZ_AMMA_SURAHS.find(s => s.id === sId) : null);
+  if (!surah && typeof JUZ_QAD_SAMI_SURAHS !== 'undefined') {
+    surah = JUZ_QAD_SAMI_SURAHS.find(s => s.id === sId);
+  }
+  if (!surah && typeof QURAN_SURAHS !== 'undefined') {
+    surah = QURAN_SURAHS.find(s => s.id === sId);
+  }
+  return surah;
+}
+
+function getCourseById(courseId) {
+  if (courseId === 'course_tamheedi_qad_sami' || courseId === 'juz_qad_sami') {
+    return QURAN_COURSES.TAMHEEDI_QAD_SAMI;
+  }
+  return QURAN_COURSES.TAHEELI_AMMA;
+}
+
+function getStudentActiveCourse(student) {
+  if (!student) return QURAN_COURSES.TAHEELI_AMMA;
+  const courseId = student.currentCourseId || 'course_taheeli_amma';
+  return getCourseById(courseId);
+}
+
+function markAmmaAsCompletedForStudent(studentId) {
+  const all = getAllRecitations();
+  if (!all[studentId]) {
+    all[studentId] = { completedSurahIds: [], history: [] };
+  }
+  const currentSet = new Set(all[studentId].completedSurahIds);
+  if (typeof JUZ_AMMA_SURAHS !== 'undefined') {
+    JUZ_AMMA_SURAHS.forEach(s => currentSet.add(s.id));
+  }
+  all[studentId].completedSurahIds = Array.from(currentSet);
+  safeSet(STORAGE_KEYS.RECITATIONS, all);
+}
+
+function promoteStudentToNextCourse(studentId) {
+  const student = getStudentById(studentId);
+  if (!student) return null;
+  const updated = {
+    ...student,
+    currentCourseId: 'course_tamheedi_qad_sami',
+    completedCourseIds: Array.from(new Set([...(student.completedCourseIds || []), 'course_taheeli_amma']))
+  };
+  markAmmaAsCompletedForStudent(studentId);
+  return saveStudent(updated);
+}
+
+function isCourseCompletedForStudent(studentId, courseId) {
+  const course = getCourseById(courseId);
+  const completedIds = new Set(getStudentRecitations(studentId));
+  return course.surahs.every(s => completedIds.has(s.id));
+}
 
 function getAllRecitations() {
   return safeGet(STORAGE_KEYS.RECITATIONS, {});
@@ -218,15 +284,19 @@ function getStudentRecitations(studentId) {
   return all[studentId] ? all[studentId].completedSurahIds || [] : [];
 }
 
-// معرفة السورة التالية في الدور (تبدأ من الناس 114 ثم الفلق 113 صعوداً للنبأ 78)
-function getNextSurahForStudent(studentId) {
+// معرفة السورة التالية في الدور حسب الدورة النشطة للطالب
+function getNextSurahForStudent(studentId, courseId = null) {
+  const student = getStudentById(studentId);
+  const targetCourseId = courseId || (student ? student.currentCourseId : 'course_taheeli_amma');
+  const course = getCourseById(targetCourseId);
+  const surahs = course.surahs || JUZ_AMMA_SURAHS;
   const completedIds = new Set(getStudentRecitations(studentId));
-  for (const surah of JUZ_AMMA_SURAHS) {
+  for (const surah of surahs) {
     if (!completedIds.has(surah.id)) {
       return surah;
     }
   }
-  return null; // أتم جميع سور جزء عم
+  return null; // أتم جميع سور الدورة
 }
 
 function saveStudentRecitation(studentId, surahId) {
@@ -235,7 +305,7 @@ function saveStudentRecitation(studentId, surahId) {
     all[studentId] = { completedSurahIds: [], history: [] };
   }
   const sId = Number(surahId);
-  const surah = JUZ_AMMA_SURAHS.find(s => s.id === sId);
+  const surah = getSurahDetailsById(sId);
   const surahName = surah ? surah.name : '';
 
   if (!all[studentId].completedSurahIds.includes(sId)) {
@@ -262,7 +332,7 @@ function toggleStudentRecitation(studentId, surahId) {
     all[studentId].completedSurahIds.splice(index, 1);
     all[studentId].history = (all[studentId].history || []).filter(h => h.surahId !== sId);
   } else {
-    const surah = JUZ_AMMA_SURAHS.find(s => s.id === sId);
+    const surah = getSurahDetailsById(sId);
     all[studentId].completedSurahIds.push(sId);
     all[studentId].history = all[studentId].history || [];
     all[studentId].history.push({
@@ -420,6 +490,8 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_1',
       fullName: 'عبدالرحمن إبراهيم المطيري',
       nationalId: '109283746',
+      currentCourseId: 'course_taheeli_amma',
+      completedCourseIds: [],
       phone: '0551234567',
       birthDate: '2012-04-12',
       birthPlace: 'الرياض',
@@ -429,6 +501,8 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_2',
       fullName: 'عمر خالد الدوسري',
       nationalId: '108374659',
+      currentCourseId: 'course_taheeli_amma',
+      completedCourseIds: [],
       phone: '0547654321',
       birthDate: '2011-09-20',
       birthPlace: 'الدمام',
@@ -438,6 +512,8 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_3',
       fullName: 'يوسف محمد القحطاني',
       nationalId: '107465982',
+      currentCourseId: 'course_taheeli_amma',
+      completedCourseIds: [],
       phone: '0509876543',
       birthDate: '2013-01-15',
       birthPlace: 'جدة',
@@ -447,6 +523,8 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_4',
       fullName: 'حمزة عبدالله الغامدي',
       nationalId: '106598473',
+      currentCourseId: 'course_tamheedi_qad_sami',
+      completedCourseIds: ['course_taheeli_amma'],
       phone: '0562345678',
       birthDate: '2012-11-03',
       birthPlace: 'مكة المكرمة',

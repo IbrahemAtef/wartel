@@ -156,3 +156,38 @@ const JUZ_AMMA_SURAHS = [
   { id: 113, name: "الفلق", order: 36 },
   { id: 114, name: "الناس", order: 37 }
 ];
+
+// سور جزء قد سمع (الجزء 28 - 9 سور من المجادلة 58 حتى التحريم 66 بترتيب المصحف الشريف)
+const JUZ_QAD_SAMI_SURAHS = [
+  { id: 58, number: 58, name: "المجادلة", order: 1, versesCount: 22, startPage: 542 },
+  { id: 59, number: 59, name: "الحشر", order: 2, versesCount: 24, startPage: 545 },
+  { id: 60, number: 60, name: "الممتحنة", order: 3, versesCount: 13, startPage: 549 },
+  { id: 61, number: 61, name: "الصف", order: 4, versesCount: 14, startPage: 551 },
+  { id: 62, number: 62, name: "الجمعة", order: 5, versesCount: 11, startPage: 553 },
+  { id: 63, number: 63, name: "المنافقون", order: 6, versesCount: 11, startPage: 554 },
+  { id: 64, number: 64, name: "التغابن", order: 7, versesCount: 18, startPage: 556 },
+  { id: 65, number: 65, name: "الطلاق", order: 8, versesCount: 12, startPage: 558 },
+  { id: 66, number: 66, name: "التحريم", order: 9, versesCount: 12, startPage: 560 }
+];
+
+// ثوابت وهيكل الدورات القرآنية الرسمية في تطبيق ورتل
+const QURAN_COURSES = {
+  TAHEELI_AMMA: {
+    id: 'course_taheeli_amma',
+    name: 'الدورة التأهيلية (جزء عم)',
+    shortName: 'التأهيلية (عم)',
+    type: 'juz_amma',
+    surahs: JUZ_AMMA_SURAHS,
+    order: 1,
+    icon: '📖'
+  },
+  TAMHEEDI_QAD_SAMI: {
+    id: 'course_tamheedi_qad_sami',
+    name: 'الدورة التمهيدية (جزء قد سمع)',
+    shortName: 'التمهيدية (قد سمع)',
+    type: 'juz_qad_sami',
+    surahs: JUZ_QAD_SAMI_SURAHS,
+    order: 2,
+    icon: '🎓'
+  }
+};

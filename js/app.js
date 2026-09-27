@@ -60,6 +60,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const studentDobInput = document.getElementById('student-dob-input');
   const studentBirthplaceInput = document.getElementById('student-birthplace-input');
   const studentResidenceInput = document.getElementById('student-residence-input');
+  const studentCourseGroup = document.getElementById('student-course-group');
+  const studentCourseSelect = document.getElementById('student-course-select');
+  const studentSaveBtn = document.getElementById('student-save-btn');
+  const studentModalIcon = document.getElementById('student-modal-icon');
+
+  // نافذة اختيار الدورة القرآنية للطالب الجديد (UI/UX Pro Max)
+  const courseSelectModal = document.getElementById('course-select-modal');
+  const courseSelectStudentName = document.getElementById('course-select-student-name');
+  const confirmCourseSelectBtn = document.getElementById('confirm-course-select-btn');
+  const cancelCourseSelectBtn = document.getElementById('cancel-course-select-btn');
+
+  let pendingNewStudentData = null;
+  let selectedCourseForNewStudent = 'course_taheeli_amma';
+  let currentProfileViewingCourseId = 'course_taheeli_amma';
 
   // حقول نافذة الغياب
   const attendanceModalHeading = document.getElementById('attendance-modal-heading');
@@ -311,15 +325,20 @@ document.addEventListener('DOMContentLoaded', () => {
           : `<span class="status-badge present">حاضر اليوم</span>`;
       }
 
-      // حساب إنجاز سور جزء عم
+      // حساب الدورة النشطة وإنجاز سورها
+      const studentCourse = getStudentActiveCourse(student);
+      const courseSurahs = studentCourse.surahs || JUZ_AMMA_SURAHS;
+      const totalSurahs = courseSurahs.length;
       const completedSurahs = new Set(getStudentRecitations(student.id));
-      const totalSurahs = JUZ_AMMA_SURAHS.length;
-      const completedCount = completedSurahs.size;
-      const progressPercent = Math.round((completedCount / totalSurahs) * 100);
+      const completedCount = courseSurahs.filter(s => completedSurahs.has(s.id)).length;
+      const progressPercent = totalSurahs > 0 ? Math.round((completedCount / totalSurahs) * 100) : 0;
 
-      // حساب السورة التالية في الدور من جزء عم (تبدأ من النبأ صعوداً)
-      const nextSurah = getNextSurahForStudent(student.id);
-      const nextSurahText = nextSurah ? `سورة ${nextSurah.name}` : 'أتمت جزء عم كاملاً 🌟';
+      // حساب السورة التالية في الدور حسب الدورة النشطة للطالب
+      const nextSurah = getNextSurahForStudent(student.id, student.currentCourseId);
+      const nextSurahText = nextSurah ? `سورة ${nextSurah.name}` : `أتم سور ${studentCourse.shortName} كاملاً 🌟`;
+
+      const courseBadgeClass = studentCourse.id === 'course_tamheedi_qad_sami' ? 'course-badge-tamheedi' : 'course-badge-taheeli';
+      const courseBadgeHtml = `<span class="student-course-badge ${courseBadgeClass}">${studentCourse.icon} ${studentCourse.shortName}</span>`;
 
       // حساب آخر اختبار قدمه الطالب إن وجد
       const latestExam = getLatestStudentExam(student.id);
@@ -341,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="student-name">${student.fullName}</div>
               <div class="student-subinfo">
                 <span>${student.nationalId ? "هوية: " + student.nationalId : "هوية غير مسجلة"}</span>
+                ${courseBadgeHtml}
                 ${statusBadgeHtml}
               </div>
             </div>
@@ -350,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="student-card-progress-box">
           <div class="student-card-progress-meta">
-            <span style="font-weight: 700; color: var(--text-secondary);">📖 إنجاز جزء عم:</span>
+            <span style="font-weight: 700; color: var(--text-secondary);">${studentCourse.icon} إنجاز ${studentCourse.shortName}:</span>
             <span style="font-weight: 800; color: var(--primary);">${completedCount} / ${totalSurahs} سورة (${progressPercent}%)</span>
           </div>
           <div class="student-card-progress-track">
@@ -447,6 +467,9 @@ document.addEventListener('DOMContentLoaded', () => {
   openAddStudentBtn.addEventListener('click', () => {
     studentEditId.value = '';
     studentModalHeading.textContent = 'إضافة طالب جديد';
+    if (studentModalIcon) studentModalIcon.textContent = '➕';
+    if (studentCourseGroup) studentCourseGroup.style.display = 'none';
+    if (studentSaveBtn) studentSaveBtn.textContent = 'متابعة لاختيار الدورة ⬅️';
     studentNameInput.value = '';
     studentIdInput.value = '';
     nationalIdCounter.textContent = '9 أرقام بالضبط';
@@ -462,6 +485,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function hideAllFormErrors() {
     document.querySelectorAll('.form-error-msg').forEach(el => el.classList.remove('visible'));
+  }
+
+  // تفاعل بطاقات اختيار الدورة في نافذة الدورة للطالب الجديد
+  const courseOptionCards = document.querySelectorAll('.course-option-card');
+  courseOptionCards.forEach(card => {
+    card.addEventListener('click', () => {
+      courseOptionCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      selectedCourseForNewStudent = card.dataset.course || 'course_taheeli_amma';
+    });
+  });
+
+  if (confirmCourseSelectBtn) {
+    confirmCourseSelectBtn.addEventListener('click', () => {
+      if (!pendingNewStudentData) return;
+      const dataToSave = {
+        ...pendingNewStudentData,
+        currentCourseId: selectedCourseForNewStudent,
+        completedCourseIds: (selectedCourseForNewStudent === 'course_tamheedi_qad_sami') ? ['course_taheeli_amma'] : []
+      };
+      const createdStudent = saveStudent(dataToSave);
+      closeModal(courseSelectModal);
+      pendingNewStudentData = null;
+      renderStudentsList();
+      const course = getCourseById(selectedCourseForNewStudent);
+      showToast(`تمت إضافة الطالب واشتراكه في ${course.shortName} بنجاح 🎉`, 'success');
+    });
+  }
+
+  if (cancelCourseSelectBtn) {
+    cancelCourseSelectBtn.addEventListener('click', () => {
+      closeModal(courseSelectModal);
+      openModal(studentModal);
+    });
   }
 
   studentForm.addEventListener('submit', (e) => {
@@ -496,67 +553,204 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hasError) return;
 
     try {
-      saveStudent({
-        id: editId,
-        fullName,
-        nationalId: idCheck.cleanId,
-        residence,
-        phone,
-        birthDate,
-        birthPlace
-      });
+      if (editId) {
+        // حالة تعديل طالب موجود مسبقاً
+        const selectedCourse = studentCourseSelect ? studentCourseSelect.value : (currentSelectedStudent ? currentSelectedStudent.currentCourseId : 'course_taheeli_amma');
+        saveStudent({
+          id: editId,
+          fullName,
+          nationalId: idCheck.cleanId,
+          currentCourseId: selectedCourse,
+          completedCourseIds: (selectedCourse === 'course_tamheedi_qad_sami') ? ['course_taheeli_amma'] : (currentSelectedStudent ? currentSelectedStudent.completedCourseIds : []),
+          residence,
+          phone,
+          birthDate,
+          birthPlace
+        });
 
-      closeModal(studentModal);
-      renderStudentsList();
-      showToast(editId ? 'تم تعديل بيانات الطالب بنجاح' : 'تمت إضافة الطالب الجديد بنجاح 🎉', 'success');
+        if (selectedCourse === 'course_tamheedi_qad_sami') {
+          markAmmaAsCompletedForStudent(editId);
+        }
+
+        closeModal(studentModal);
+        renderStudentsList();
+        if (currentSelectedStudent && currentSelectedStudent.id === editId) {
+          currentSelectedStudent = getStudentById(editId);
+          openStudentProfile(currentSelectedStudent);
+        }
+        showToast('تم تعديل بيانات الطالب بنجاح ✨', 'success');
+      } else {
+        // حالة إضافة طالب جديد: تخزين البيانات وفتح نافذة اختيار الدورة القرآنية
+        pendingNewStudentData = {
+          fullName,
+          nationalId: idCheck.cleanId,
+          residence,
+          phone,
+          birthDate,
+          birthPlace
+        };
+        if (courseSelectStudentName) {
+          courseSelectStudentName.textContent = `"${fullName}"`;
+        }
+        selectedCourseForNewStudent = 'course_taheeli_amma';
+        courseOptionCards.forEach(c => {
+          if (c.dataset.course === 'course_taheeli_amma') c.classList.add('active');
+          else c.classList.remove('active');
+        });
+        closeModal(studentModal);
+        openModal(courseSelectModal);
+      }
     } catch (err) {
       showToast(err.message || 'حدث خطأ أثناء حفظ الطالب', 'error');
     }
   });
 
   // -------------------------------------------------------------
-  // 8. عرض ملف الطالب الكامل وتاريخ غيابه ومتابعة جزء عم
+  // 8. متابعة الدورات القرآنية وتفاصيل ملف الطالب (UI/UX Pro Max)
   // -------------------------------------------------------------
-  function renderProfileJuzAmma(student) {
+  function renderProfileCourseTracker(student) {
+    if (!student) return;
+    const activeCourse = getStudentActiveCourse(student);
+    const viewingCourse = getCourseById(currentProfileViewingCourseId);
     const completedSurahs = new Set(getStudentRecitations(student.id));
-    const nextSurah = getNextSurahForStudent(student.id);
-    const totalCount = JUZ_AMMA_SURAHS.length;
-    const completedCount = completedSurahs.size;
+    const nextSurahInViewingCourse = getNextSurahForStudent(student.id, viewingCourse.id);
 
-    document.getElementById('profile-juz-progress').textContent = `${completedCount} / ${totalCount}`;
-    const percent = Math.round((completedCount / totalCount) * 100);
-    document.getElementById('profile-juz-progress-bar').style.width = `${percent}%`;
+    const isStudentInTamheedi = (student.currentCourseId === 'course_tamheedi_qad_sami');
+    const isTaheeliCompleted = isCourseCompletedForStudent(student.id, 'course_taheeli_amma') || isStudentInTamheedi;
+    const isTamheediCompleted = isCourseCompletedForStudent(student.id, 'course_tamheedi_qad_sami');
 
+    // 1. تحديث أزرار وحالات التبويبات
+    const tabTaheeli = document.getElementById('tab-btn-taheeli');
+    const tabTamheedi = document.getElementById('tab-btn-tamheedi');
+    const statusTaheeli = document.getElementById('tab-status-taheeli');
+    const statusTamheedi = document.getElementById('tab-status-tamheedi');
+
+    if (tabTaheeli && tabTamheedi) {
+      if (currentProfileViewingCourseId === 'course_taheeli_amma') {
+        tabTaheeli.classList.add('active');
+        tabTamheedi.classList.remove('active');
+      } else {
+        tabTamheedi.classList.add('active');
+        tabTaheeli.classList.remove('active');
+      }
+
+      if (isStudentInTamheedi) {
+        if (statusTaheeli) {
+          statusTaheeli.textContent = 'مكتملة 🌟';
+          statusTaheeli.className = 'tab-status-chip completed';
+        }
+        if (statusTamheedi) {
+          statusTamheedi.textContent = isTamheediCompleted ? 'مكتملة 🌟' : 'الحالية 🎯';
+          statusTamheedi.className = 'tab-status-chip ' + (isTamheediCompleted ? 'completed' : 'current');
+        }
+      } else {
+        if (statusTaheeli) {
+          statusTaheeli.textContent = isTaheeliCompleted ? 'مكتملة 🌟' : 'الحالية 🎯';
+          statusTaheeli.className = 'tab-status-chip ' + (isTaheeliCompleted ? 'completed' : 'current');
+        }
+        if (statusTamheedi) {
+          statusTamheedi.textContent = 'التالية ⏳';
+          statusTamheedi.className = 'tab-status-chip inactive';
+        }
+      }
+    }
+
+    // 2. تحديث العنوان والوصف وشريط الإنجاز
+    const titleEl = document.getElementById('profile-course-title');
+    const subtitleEl = document.getElementById('profile-course-subtitle');
+    const progressTextEl = document.getElementById('profile-juz-progress');
+    const progressBarFill = document.getElementById('profile-juz-progress-bar');
+
+    const totalCount = viewingCourse.surahs.length;
+    const completedCountInViewing = viewingCourse.surahs.filter(s => completedSurahs.has(s.id)).length;
+    const percent = totalCount > 0 ? Math.round((completedCountInViewing / totalCount) * 100) : 0;
+
+    if (titleEl) {
+      titleEl.textContent = `${viewingCourse.icon} ${viewingCourse.name} (${totalCount} سورة)`;
+    }
+    if (subtitleEl) {
+      if (viewingCourse.id === 'course_tamheedi_qad_sami') {
+        subtitleEl.textContent = 'يبدأ التسميع من سورة المجادلة حتى سورة التحريم';
+      } else {
+        subtitleEl.textContent = 'يبدأ التسميع من سورة النبأ حتى سورة الناس';
+      }
+    }
+    if (progressTextEl) {
+      progressTextEl.textContent = `${completedCountInViewing} / ${totalCount}`;
+    }
+    if (progressBarFill) {
+      progressBarFill.style.width = `${percent}%`;
+    }
+
+    // 3. إظهار بانر الترقية إذا كان الطالب في التأهيلية وأتمها
+    const promoBanner = document.getElementById('course-promotion-banner');
+    if (promoBanner) {
+      if (!isStudentInTamheedi && isTaheeliCompleted) {
+        promoBanner.style.display = 'flex';
+      } else {
+        promoBanner.style.display = 'none';
+      }
+    }
+
+    // 4. ملء شبكة سور الدورة المحددة
     const grid = document.getElementById('profile-juz-surahs-grid');
-    grid.innerHTML = '';
+    if (grid) {
+      grid.innerHTML = '';
+      viewingCourse.surahs.forEach(surah => {
+        const isCompleted = completedSurahs.has(surah.id);
+        const isNext = (nextSurahInViewingCourse && nextSurahInViewingCourse.id === surah.id);
 
-    JUZ_AMMA_SURAHS.forEach(surah => {
-      const isCompleted = completedSurahs.has(surah.id);
-      const isNext = nextSurah && nextSurah.id === surah.id;
+        const chip = document.createElement('div');
+        chip.className = `juz-surah-chip ${isCompleted ? 'completed' : ''} ${isNext ? 'next-in-turn' : ''}`;
 
-      const chip = document.createElement('div');
-      chip.className = `juz-surah-chip ${isCompleted ? 'completed' : ''} ${isNext ? 'next-in-turn' : ''}`;
+        let iconHtml = `<span style="font-size: 0.68rem; opacity: 0.7;">#${surah.order}</span>`;
+        if (isCompleted) iconHtml = `<span>✓</span>`;
+        else if (isNext) iconHtml = `<span>🎯</span>`;
 
-      let iconHtml = `<span style="font-size: 0.68rem; opacity: 0.7;">#${surah.order}</span>`;
-      if (isCompleted) iconHtml = `<span>✓</span>`;
-      else if (isNext) iconHtml = `<span>🎯</span>`;
+        chip.innerHTML = `
+          ${iconHtml}
+          <span>${surah.name}</span>
+        `;
 
-      chip.innerHTML = `
-        ${iconHtml}
-        <span>${surah.name}</span>
-      `;
+        chip.title = isCompleted ? `تم التسميع - اضغط للإلغاء` : (isNext ? `السورة التالية - اضغط للتسميع` : `اضغط لتسجيل التسميع`);
 
-      chip.title = isCompleted ? `تم التسميع - اضغط للإلغاء` : (isNext ? `السورة التالية - اضغط للتسميع` : `اضغط لتسجيل التسميع`);
+        chip.addEventListener('click', () => {
+          toggleStudentRecitation(student.id, surah.id);
+          renderProfileCourseTracker(student);
+          renderStudentsList();
+          const nowCompleted = !isCompleted;
+          showToast(nowCompleted ? `تم تسجيل تسميع سورة ${surah.name} بنجاح ✓` : `تم إلغاء تسميع سورة ${surah.name}`, 'success');
+        });
 
-      chip.addEventListener('click', () => {
-        toggleStudentRecitation(student.id, surah.id);
-        renderProfileJuzAmma(student);
-        renderStudentsList();
-        const nowCompleted = !isCompleted;
-        showToast(nowCompleted ? `تم تسجيل تسميع سورة ${surah.name} بنجاح ✓` : `تم إلغاء تسميع سورة ${surah.name}`, 'success');
+        grid.appendChild(chip);
       });
+    }
+  }
 
-      grid.appendChild(chip);
+  // أحداث التبديل بين تبويبات الدورات وزر الترقية
+  const tabBtnTaheeli = document.getElementById('tab-btn-taheeli');
+  const tabBtnTamheedi = document.getElementById('tab-btn-tamheedi');
+  if (tabBtnTaheeli && tabBtnTamheedi) {
+    tabBtnTaheeli.addEventListener('click', () => {
+      currentProfileViewingCourseId = 'course_taheeli_amma';
+      if (currentSelectedStudent) renderProfileCourseTracker(currentSelectedStudent);
+    });
+    tabBtnTamheedi.addEventListener('click', () => {
+      currentProfileViewingCourseId = 'course_tamheedi_qad_sami';
+      if (currentSelectedStudent) renderProfileCourseTracker(currentSelectedStudent);
+    });
+  }
+
+  const promoteStudentBtn = document.getElementById('promote-student-btn');
+  if (promoteStudentBtn) {
+    promoteStudentBtn.addEventListener('click', () => {
+      if (!currentSelectedStudent) return;
+      promoteStudentToNextCourse(currentSelectedStudent.id);
+      currentSelectedStudent = getStudentById(currentSelectedStudent.id);
+      currentProfileViewingCourseId = 'course_tamheedi_qad_sami';
+      renderProfileCourseTracker(currentSelectedStudent);
+      renderStudentsList();
+      showToast('تهانينا ومبارك! 🎓 تم ترقية الطالب إلى الدورة التمهيدية (جزء قد سمع) بنجاح!', 'success');
     });
   }
 
@@ -570,8 +764,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('profile-dob').textContent = student.birthDate ? formatDateDMY(student.birthDate) : 'غير مسجل';
     document.getElementById('profile-birthplace').textContent = student.birthPlace || 'غير مسجل';
 
-    // عرض ومتابعة سور جزء عم
-    renderProfileJuzAmma(student);
+    const currentCourse = getStudentActiveCourse(student);
+    const currentCourseEl = document.getElementById('profile-current-course');
+    if (currentCourseEl) {
+      currentCourseEl.textContent = currentCourse.shortName;
+    }
+
+    currentProfileViewingCourseId = student.currentCourseId || 'course_taheeli_amma';
+
+    // عرض ومتابعة سور الدورة
+    renderProfileCourseTracker(student);
 
     // عرض سجل اختبارات الطالب
     renderProfileExams(student);
@@ -760,7 +962,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // -------------------------------------------------------------
-  // نافذة تسجيل تسميع سورة من جزء عم (Recitation Modal)
+  // -------------------------------------------------------------
+  // نافذة تسجيل تسميع سورة (Recitation Modal)
   // -------------------------------------------------------------
   let currentRecitationStudent = null;
   const recitationModal = document.getElementById('recitation-modal');
@@ -768,16 +971,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const recitationSuggestedName = document.getElementById('recitation-suggested-name');
   const recitationSurahSelect = document.getElementById('recitation-surah-select');
   const confirmRecitationBtn = document.getElementById('confirm-recitation-btn');
+  const recitationCourseBadge = document.getElementById('recitation-course-badge');
+  const recitationCourseHint = document.getElementById('recitation-course-hint');
 
   function openRecitationModal(student) {
     currentRecitationStudent = student;
     recitationStudentName.textContent = student.fullName;
 
+    const activeCourse = getStudentActiveCourse(student);
+    if (recitationCourseBadge) {
+      recitationCourseBadge.textContent = activeCourse.shortName;
+    }
+    if (recitationCourseHint) {
+      recitationCourseHint.textContent = activeCourse.name;
+    }
+
     const completedIds = new Set(getStudentRecitations(student.id));
-    const nextSurah = getNextSurahForStudent(student.id);
+    const nextSurah = getNextSurahForStudent(student.id, student.currentCourseId);
 
     recitationSurahSelect.innerHTML = '';
-    JUZ_AMMA_SURAHS.forEach(s => {
+    activeCourse.surahs.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id;
       const isDone = completedIds.has(s.id) ? ' (تم تسميعها مسبقاً ✓)' : '';
@@ -789,8 +1002,8 @@ document.addEventListener('DOMContentLoaded', () => {
       recitationSuggestedName.textContent = `سورة ${nextSurah.name}`;
       recitationSurahSelect.value = nextSurah.id;
     } else {
-      recitationSuggestedName.textContent = 'أتمت جميع سور جزء عم كاملاً 🌟';
-      recitationSurahSelect.value = JUZ_AMMA_SURAHS[0].id;
+      recitationSuggestedName.textContent = `أتم جميع سور ${activeCourse.shortName} كاملاً 🌟`;
+      recitationSurahSelect.value = activeCourse.surahs[0].id;
     }
 
     openModal(recitationModal);
@@ -800,17 +1013,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!currentRecitationStudent) return;
     const surahId = Number(recitationSurahSelect.value);
     saveStudentRecitation(currentRecitationStudent.id, surahId);
-    const surahObj = JUZ_AMMA_SURAHS.find(s => s.id === surahId);
+    const surahObj = getSurahDetailsById(surahId);
     const surahName = surahObj ? surahObj.name : '';
 
     closeModal(recitationModal);
     renderStudentsList();
 
     if (profileModal.classList.contains('active') && currentSelectedStudent && currentSelectedStudent.id === currentRecitationStudent.id) {
-      renderProfileJuzAmma(currentSelectedStudent);
+      renderProfileCourseTracker(currentSelectedStudent);
     }
 
-    showToast(`تم تسجيل تسميع سورة ${surahName} للطالبة بنجاح 📖`, 'success');
+    showToast(`تم تسجيل تسميع سورة ${surahName} للطالب بنجاح 📖`, 'success');
   });
 
   // تعديل الطالب من الملف الشخصي
@@ -820,6 +1033,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     studentEditId.value = currentSelectedStudent.id;
     studentModalHeading.textContent = 'تعديل بيانات الطالب';
+    if (studentModalIcon) studentModalIcon.textContent = '✏️';
+    if (studentCourseGroup) studentCourseGroup.style.display = 'block';
+    if (studentCourseSelect) studentCourseSelect.value = currentSelectedStudent.currentCourseId || 'course_taheeli_amma';
+    if (studentSaveBtn) studentSaveBtn.textContent = 'حفظ التعديلات';
+
     studentNameInput.value = currentSelectedStudent.fullName;
     studentIdInput.value = currentSelectedStudent.nationalId;
     nationalIdCounter.textContent = `${currentSelectedStudent.nationalId.length} / 9 أرقام`;
