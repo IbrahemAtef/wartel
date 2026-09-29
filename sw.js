@@ -1,6 +1,6 @@
 // Service Worker لدعم التشغيل بدون إنترنت بالكامل (Offline-First)
 
-const CACHE_NAME = 'wartel-quran-cache-v32';
+const CACHE_NAME = 'wartel-quran-cache-v33';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

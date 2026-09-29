@@ -33,13 +33,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const sessionBtnTextG2 = document.getElementById('session-btn-text-g2');
   const openSessionModalG2Btn = document.getElementById('open-session-modal-g2-btn');
 
-  // عناصر الطلاب والبحث
+  // عناصر الطلاب والبحث وفلترة الدورات
   const studentsListContainer = document.getElementById('students-list-container');
   const searchInput = document.getElementById('search-student-input');
   const clearSearchBtn = document.getElementById('clear-search-btn');
   const statsTotalStudents = document.getElementById('stats-total-students');
   const statsPresentCount = document.getElementById('stats-present-count');
   const statsAbsentCount = document.getElementById('stats-absent-count');
+
+  // كبسولات فلترة الطلاب حسب الدورة الحالية (UI/UX Pro Max)
+  const courseFilterPills = document.querySelectorAll('.course-filter-pill');
+  const filterCountAll = document.getElementById('filter-count-all');
+  const filterCountTamheedi = document.getElementById('filter-count-tamheedi');
+  const filterCountTaheeli = document.getElementById('filter-count-taheeli');
+  let currentCourseFilter = 'all';
 
   // أزرار ونوافذ الإجراءات
   const openAddStudentBtn = document.getElementById('open-add-student-btn');
@@ -330,11 +337,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // -------------------------------------------------------------
-  // 6. عرض قائمة الطلاب وشريط البحث
+  // 6. عرض قائمة الطلاب وشريط البحث وفلترة الدورات (UI/UX Pro Max)
   // -------------------------------------------------------------
   function renderStudentsList() {
     const students = getStudents();
     const sortedStudents = [...students].sort(compareStudentsByAchievement);
+
+    // تحديث أعداد الطلاب في كبسولات الفلترة
+    const countAll = students.length;
+    let countTamheedi = 0;
+    let countTaheeli = 0;
+    students.forEach(s => {
+      const cId = getStudentActiveCourse(s).id;
+      if (cId === 'course_taheeli_qad_sami') {
+        countTaheeli++;
+      } else {
+        countTamheedi++;
+      }
+    });
+
+    if (filterCountAll) filterCountAll.textContent = countAll;
+    if (filterCountTamheedi) filterCountTamheedi.textContent = countTamheedi;
+    if (filterCountTaheeli) filterCountTaheeli.textContent = countTaheeli;
 
     // خريطة المراكز العامة للطلاب بناءً على إنجاز الدورات
     const studentRankMap = new Map();
@@ -342,36 +366,93 @@ document.addEventListener('DOMContentLoaded', () => {
       studentRankMap.set(student.id, index + 1);
     });
 
+    // 1. فلترة الطلاب حسب الدورة الحالية المختارة
+    let courseFiltered = sortedStudents;
+    if (currentCourseFilter === 'course_tamheedi_amma') {
+      courseFiltered = sortedStudents.filter(s => getStudentActiveCourse(s).id === 'course_tamheedi_amma');
+    } else if (currentCourseFilter === 'course_taheeli_qad_sami') {
+      courseFiltered = sortedStudents.filter(s => getStudentActiveCourse(s).id === 'course_taheeli_qad_sami');
+    }
+
     const query = (searchInput.value || '').trim().toLowerCase();
     const today = getTodayStr();
     const todayAttendance = getAttendance(today);
     const absentIds = new Set(todayAttendance ? todayAttendance.absentStudentIds : []);
 
-    const filtered = sortedStudents.filter(s => s.fullName.toLowerCase().includes(query));
+    // 2. تحديث شريط الإحصائيات ليعكس الدورة المختارة وحضورها بدقة
+    const totalInFilter = courseFiltered.length;
+    if (currentCourseFilter === 'course_tamheedi_amma') {
+      statsTotalStudents.textContent = `طلاب التمهيدية: ${totalInFilter}`;
+    } else if (currentCourseFilter === 'course_taheeli_qad_sami') {
+      statsTotalStudents.textContent = `طلاب التأهيلية: ${totalInFilter}`;
+    } else {
+      statsTotalStudents.textContent = `إجمالي الطلاب: ${totalInFilter}`;
+    }
 
-    // تحديث شريط الإحصائيات
-    statsTotalStudents.textContent = `إجمالي الطلاب: ${students.length}`;
     if (todayAttendance) {
-      const absentCount = absentIds.size;
-      const presentCount = Math.max(0, students.length - absentCount);
-      statsPresentCount.textContent = `حاضر: ${presentCount}`;
-      statsAbsentCount.textContent = `غياب: ${absentCount}`;
+      const absentInFilterCount = courseFiltered.filter(s => absentIds.has(s.id)).length;
+      const presentInFilterCount = Math.max(0, totalInFilter - absentInFilterCount);
+      statsPresentCount.textContent = `حاضر: ${presentInFilterCount}`;
+      statsAbsentCount.textContent = `غياب: ${absentInFilterCount}`;
     } else {
       statsPresentCount.textContent = `حاضر: -`;
       statsAbsentCount.textContent = `الغياب لم يسجل بعد`;
     }
 
+    // 3. فلترة بنص البحث بالاسم
+    const filtered = courseFiltered.filter(s => s.fullName.toLowerCase().includes(query));
+
     studentsListContainer.innerHTML = '';
 
     if (filtered.length === 0) {
+      let emptyTitle = '';
+      let emptyDesc = '';
+      const hasFilterOrSearch = query || (currentCourseFilter !== 'all');
+
+      if (query) {
+        emptyTitle = 'لا يوجد طلاب يطابقون اسم البحث';
+        emptyDesc = 'جرب البحث باسم آخر أو إزالة نص البحث';
+      } else if (currentCourseFilter === 'course_tamheedi_amma') {
+        emptyTitle = 'لا يوجد طلاب مسجلون في الدورة التمهيدية (عم) حالياً';
+        emptyDesc = 'يمكنك تسجيل طلاب جدد واختيار جزء عم أو تعديل دورة طالب قائم';
+      } else if (currentCourseFilter === 'course_taheeli_qad_sami') {
+        emptyTitle = 'لا يوجد طلاب مسجلون في الدورة التأهيلية (قد سمع) حالياً';
+        emptyDesc = 'يمكنك ترقية طالب بعد إتمام جزء عم أو تسجيل طالب جديد في هذه الدورة';
+      } else {
+        emptyTitle = 'لا يوجد طلاب مسجلين حتى الآن';
+        emptyDesc = 'اضغط على "إضافة طالب جديد" للبدء في التسجيل';
+      }
+
       const emptyState = document.createElement('div');
       emptyState.className = 'empty-list-placeholder';
       emptyState.innerHTML = `
-        <div class="empty-icon">👥</div>
-        <div class="empty-title">${query ? 'لا يوجد طلاب يطابقون اسم البحث' : 'لا يوجد طلاب مسجلين حتى الآن'}</div>
-        <div style="font-size: 0.85rem;">اضغط على "إضافة طالب جديد" للبدء في التسجيل</div>
+        <div class="empty-icon">${query ? '🔍' : '👥'}</div>
+        <div class="empty-title">${emptyTitle}</div>
+        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">${emptyDesc}</div>
+        ${hasFilterOrSearch ? `
+          <button type="button" class="btn btn-secondary btn-sm" id="reset-student-filters-btn" style="margin-top: 14px; font-size: 0.84rem; padding: 8px 18px;">
+            <span>🔄</span>
+            <span>عرض جميع الطلاب</span>
+          </button>
+        ` : ''}
       `;
       studentsListContainer.appendChild(emptyState);
+
+      const resetBtn = emptyState.querySelector('#reset-student-filters-btn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          searchInput.value = '';
+          clearSearchBtn.style.display = 'none';
+          currentCourseFilter = 'all';
+          courseFilterPills.forEach(p => {
+            const isAll = (p.dataset.courseFilter === 'all');
+            p.classList.toggle('active', isAll);
+            p.setAttribute('aria-selected', isAll ? 'true' : 'false');
+          });
+          renderStudentsList();
+        });
+      }
+
       return;
     }
 
@@ -531,6 +612,23 @@ document.addEventListener('DOMContentLoaded', () => {
     clearSearchBtn.style.display = 'none';
     renderStudentsList();
     searchInput.focus();
+  });
+
+  // تفعيل تبديل كبسولات فلترة الدورات القرآنية (UI/UX Pro Max)
+  courseFilterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      const filterVal = pill.dataset.courseFilter || 'all';
+      if (currentCourseFilter === filterVal) return;
+
+      currentCourseFilter = filterVal;
+      courseFilterPills.forEach(p => {
+        const isActive = (p.dataset.courseFilter === filterVal);
+        p.classList.toggle('active', isActive);
+        p.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      renderStudentsList();
+    });
   });
 
   // -------------------------------------------------------------

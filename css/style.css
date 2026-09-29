@@ -2332,6 +2332,124 @@ textarea {
   gap: 12px;
 }
 
+/* ============================================================
+   UI/UX Pro Max: شريط فلترة الطلاب حسب الدورة القرآنية الحالية
+   ============================================================ */
+.course-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.course-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.course-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.course-filter-pill:hover {
+  background: var(--surface-elevated);
+  border-color: var(--primary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.course-filter-pill:active {
+  transform: scale(0.97);
+}
+
+.course-filter-pill .pill-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--surface-border-subtle);
+  transition: all var(--transition-fast);
+}
+
+.course-filter-pill.active {
+  border-color: transparent;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px var(--primary-glow);
+  transform: scale(1.02);
+}
+
+.course-filter-pill.active .pill-counter {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.course-filter-pill[data-course-filter="all"].active {
+  background: var(--primary-gradient);
+}
+
+.course-filter-pill[data-course-filter="course_tamheedi_amma"].active {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.course-filter-pill[data-course-filter="course_taheeli_qad_sami"].active {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="dark"] .course-filter-pill {
+  background: var(--surface);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .course-filter-pill .pill-counter {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 420px) {
+  .course-filter-pill {
+    padding: 7px 10px;
+    font-size: 0.78rem;
+    gap: 5px;
+  }
+  .course-filter-pill .pill-counter {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.68rem;
+    padding: 0 5px;
+  }
+}
+
 /* السطر الأول: إجمالي الطلاب وشارات الحضور والغياب */
 .students-stats-row {
   display: flex;

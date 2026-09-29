@@ -16,8 +16,8 @@
   <link rel="icon" type="image/png" href="icons/favicon.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=32">
-  <link rel="stylesheet" href="css/exam-cards.css?v=32">
+  <link rel="stylesheet" href="css/style.css?v=33">
+  <link rel="stylesheet" href="css/exam-cards.css?v=33">
 </head>
 <body>
 
@@ -146,6 +146,27 @@
           <span class="search-icon">🔍</span>
           <input type="text" id="search-student-input" class="search-input" placeholder="ابحث عن طالب بالاسم..." autocomplete="off">
           <button type="button" id="clear-search-btn" class="search-clear-btn" aria-label="مسح البحث">✕</button>
+        </div>
+
+        <!-- شريط فلترة الطلاب حسب الدورة الحالية (UI/UX Pro Max) -->
+        <div class="course-filter-pills" id="students-course-filter-bar" role="tablist" aria-label="تصفية الطلاب حسب الدورة">
+          <button type="button" class="course-filter-pill active" data-course-filter="all" role="tab" aria-selected="true">
+            <span class="pill-icon">🌟</span>
+            <span class="pill-text">الكل</span>
+            <span class="pill-counter" id="filter-count-all">0</span>
+          </button>
+
+          <button type="button" class="course-filter-pill" data-course-filter="course_tamheedi_amma" role="tab" aria-selected="false">
+            <span class="pill-icon">📖</span>
+            <span class="pill-text">التمهيدية (عم)</span>
+            <span class="pill-counter" id="filter-count-tamheedi">0</span>
+          </button>
+
+          <button type="button" class="course-filter-pill" data-course-filter="course_taheeli_qad_sami" role="tab" aria-selected="false">
+            <span class="pill-icon">🎓</span>
+            <span class="pill-text">التأهيلية (قد سمع)</span>
+            <span class="pill-counter" id="filter-count-taheeli">0</span>
+          </button>
         </div>
 
         <!-- شريط الإحصائيات (السطر الأول) -->
@@ -879,9 +900,9 @@
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- ملفات الجافاسكريبت -->
-  <script src="js/quran-data.js?v=32"></script>
-  <script src="js/storage.js?v=32"></script>
-  <script src="js/app.js?v=32"></script>
-  <script src="js/pwa-register.js?v=32"></script>
+  <script src="js/quran-data.js?v=33"></script>
+  <script src="js/storage.js?v=33"></script>
+  <script src="js/app.js?v=33"></script>
+  <script src="js/pwa-register.js?v=33"></script>
 </body>
 </html>
