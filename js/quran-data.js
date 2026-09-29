@@ -172,22 +172,26 @@ const JUZ_QAD_SAMI_SURAHS = [
 
 // ثوابت وهيكل الدورات القرآنية الرسمية في تطبيق ورتل
 const QURAN_COURSES = {
-  TAHEELI_AMMA: {
-    id: 'course_taheeli_amma',
-    name: 'الدورة التأهيلية (جزء عم)',
-    shortName: 'التأهيلية (عم)',
+  TAMHEEDI_AMMA: {
+    id: 'course_tamheedi_amma',
+    name: 'الدورة التمهيدية (جزء عم)',
+    shortName: 'التمهيدية (عم)',
     type: 'juz_amma',
     surahs: JUZ_AMMA_SURAHS,
     order: 1,
     icon: '📖'
   },
-  TAMHEEDI_QAD_SAMI: {
-    id: 'course_tamheedi_qad_sami',
-    name: 'الدورة التمهيدية (جزء قد سمع)',
-    shortName: 'التمهيدية (قد سمع)',
+  TAHEELI_QAD_SAMI: {
+    id: 'course_taheeli_qad_sami',
+    name: 'الدورة التأهيلية (جزء قد سمع)',
+    shortName: 'التأهيلية (قد سمع)',
     type: 'juz_qad_sami',
     surahs: JUZ_QAD_SAMI_SURAHS,
     order: 2,
     icon: '🎓'
   }
 };
+
+// توافق رجعي مع المسميات والمفاتيح البرمجية السابقة
+QURAN_COURSES.TAHEELI_AMMA = QURAN_COURSES.TAMHEEDI_AMMA;
+QURAN_COURSES.TAMHEEDI_QAD_SAMI = QURAN_COURSES.TAHEELI_QAD_SAMI;

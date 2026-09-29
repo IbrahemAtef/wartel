@@ -18,13 +18,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const goToHistoryBtn = document.getElementById('go-to-history-btn');
   const backToHomeBtn = document.getElementById('back-to-home-btn');
 
-  // عناصر بطاقة سورة اليوم
+  // عناصر بطاقتي سورة اليوم للمجموعتين الأولى والثانية
   const displayTodayDate = document.getElementById('display-today-date');
-  const displaySurahName = document.getElementById('display-surah-name');
-  const displayPageNumber = document.getElementById('display-page-number');
-  const sessionStatusBadge = document.getElementById('session-status-badge');
-  const sessionBtnText = document.getElementById('session-btn-text');
-  const openSessionModalBtn = document.getElementById('open-session-modal-btn');
+  const displayTodayDateG2 = document.getElementById('display-today-date-g2');
+  const displaySurahNameG1 = document.getElementById('display-surah-name-g1');
+  const displayPageNumberG1 = document.getElementById('display-page-number-g1');
+  const sessionStatusBadgeG1 = document.getElementById('session-status-badge-g1');
+  const sessionBtnTextG1 = document.getElementById('session-btn-text-g1');
+  const openSessionModalG1Btn = document.getElementById('open-session-modal-g1-btn');
+
+  const displaySurahNameG2 = document.getElementById('display-surah-name-g2');
+  const displayPageNumberG2 = document.getElementById('display-page-number-g2');
+  const sessionStatusBadgeG2 = document.getElementById('session-status-badge-g2');
+  const sessionBtnTextG2 = document.getElementById('session-btn-text-g2');
+  const openSessionModalG2Btn = document.getElementById('open-session-modal-g2-btn');
 
   // عناصر الطلاب والبحث
   const studentsListContainer = document.getElementById('students-list-container');
@@ -46,6 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // حقول نافذة المقرر
   const sessionForm = document.getElementById('session-form');
+  const sessionTargetGroup = document.getElementById('session-target-group');
+  const sessionGroupBadge = document.getElementById('session-group-badge');
   const sessionSurahSelect = document.getElementById('session-surah-select');
   const sessionPageInput = document.getElementById('session-page-input');
 
@@ -72,8 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelCourseSelectBtn = document.getElementById('cancel-course-select-btn');
 
   let pendingNewStudentData = null;
-  let selectedCourseForNewStudent = 'course_taheeli_amma';
-  let currentProfileViewingCourseId = 'course_taheeli_amma';
+  let selectedCourseForNewStudent = 'course_tamheedi_amma';
+  let currentProfileViewingCourseId = 'course_tamheedi_amma';
 
   // حقول نافذة الغياب
   const attendanceModalHeading = document.getElementById('attendance-modal-heading');
@@ -203,45 +212,94 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderTodaySession() {
     const today = getTodayStr();
     const formattedDate = formatDateArabic(today);
-    displayTodayDate.textContent = formattedDate;
+    if (displayTodayDate) displayTodayDate.textContent = formattedDate;
+    if (displayTodayDateG2) displayTodayDateG2.textContent = formattedDate;
 
     const session = getDailySession(today);
-    if (session && session.surahName) {
-      displaySurahName.textContent = `سورة ${session.surahName}`;
-      displayPageNumber.textContent = session.pageNumber;
-      sessionStatusBadge.textContent = 'مقرر مسجل ✓';
-      sessionStatusBadge.style.background = 'var(--primary-gradient)';
-      sessionBtnText.textContent = 'تعديل اسم السورة ورقم الصفحة';
+    const g1 = session && session.group1;
+    const g2 = session && session.group2;
+
+    // 1. تحديث بطاقة المجموعة الأولى (الزمرد)
+    if (g1 && g1.surahName) {
+      if (displaySurahNameG1) displaySurahNameG1.textContent = `سورة ${g1.surahName}`;
+      if (displayPageNumberG1) displayPageNumberG1.textContent = g1.pageNumber;
+      if (sessionStatusBadgeG1) {
+        sessionStatusBadgeG1.textContent = 'مقرر مسجل ✓';
+        sessionStatusBadgeG1.style.background = 'var(--primary-gradient)';
+      }
+      if (sessionBtnTextG1) sessionBtnTextG1.textContent = 'تعديل مقرر المجموعة الأولى';
     } else {
-      displaySurahName.textContent = 'لم يُسجل مقرر اليوم';
-      displayPageNumber.textContent = '-';
-      sessionStatusBadge.textContent = 'بانتظار التسجيل';
-      sessionStatusBadge.style.background = 'var(--gold-gradient)';
-      sessionBtnText.textContent = 'إضافة سورة وصفحة اليوم';
+      if (displaySurahNameG1) displaySurahNameG1.textContent = 'لم يُسجل مقرر اليوم';
+      if (displayPageNumberG1) displayPageNumberG1.textContent = '-';
+      if (sessionStatusBadgeG1) {
+        sessionStatusBadgeG1.textContent = 'بانتظار التسجيل';
+        sessionStatusBadgeG1.style.background = 'var(--gold-gradient)';
+      }
+      if (sessionBtnTextG1) sessionBtnTextG1.textContent = 'إضافة مقرر المجموعة الأولى';
+    }
+
+    // 2. تحديث بطاقة المجموعة الثانية (النيلي والياقوتي)
+    if (g2 && g2.surahName) {
+      if (displaySurahNameG2) displaySurahNameG2.textContent = `سورة ${g2.surahName}`;
+      if (displayPageNumberG2) displayPageNumberG2.textContent = g2.pageNumber;
+      if (sessionStatusBadgeG2) {
+        sessionStatusBadgeG2.textContent = 'مقرر مسجل ✓';
+        sessionStatusBadgeG2.style.background = 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)';
+      }
+      if (sessionBtnTextG2) sessionBtnTextG2.textContent = 'تعديل مقرر المجموعة الثانية';
+    } else {
+      if (displaySurahNameG2) displaySurahNameG2.textContent = 'لم يُسجل مقرر اليوم';
+      if (displayPageNumberG2) displayPageNumberG2.textContent = '-';
+      if (sessionStatusBadgeG2) {
+        sessionStatusBadgeG2.textContent = 'بانتظار التسجيل';
+        sessionStatusBadgeG2.style.background = 'var(--gold-gradient)';
+      }
+      if (sessionBtnTextG2) sessionBtnTextG2.textContent = 'إضافة مقرر المجموعة الثانية';
     }
   }
 
-  openSessionModalBtn.addEventListener('click', () => {
+  function openSessionModalForGroup(groupKey = 'group1') {
     const today = getTodayStr();
     const session = getDailySession(today);
+    const groupData = session ? (groupKey === 'group1' ? session.group1 : session.group2) : null;
+    const isG1 = (groupKey === 'group1');
 
-    if (session) {
-      document.getElementById('session-modal-heading').textContent = 'تعديل سورة وصفحة اليوم';
-      sessionSurahSelect.value = session.surahName;
-      sessionPageInput.value = session.pageNumber;
+    if (sessionTargetGroup) {
+      sessionTargetGroup.value = groupKey;
+    }
+
+    const groupHeading = isG1 ? 'مقرر المجموعة الأولى' : 'مقرر المجموعة الثانية';
+    const headingElem = document.getElementById('session-modal-heading');
+    if (headingElem) {
+      headingElem.textContent = groupData && groupData.surahName ? `تعديل ${groupHeading}` : `إضافة ${groupHeading}`;
+    }
+
+    if (sessionGroupBadge) {
+      sessionGroupBadge.textContent = isG1 ? '🌿 مقرر المجموعة الأولى' : '💎 مقرر المجموعة الثانية';
+      sessionGroupBadge.className = `group-indicator-badge ${isG1 ? 'tag-group-1' : 'tag-group-2'}`;
+    }
+
+    if (groupData && groupData.surahName) {
+      sessionSurahSelect.value = groupData.surahName;
+      sessionPageInput.value = groupData.pageNumber;
     } else {
-      document.getElementById('session-modal-heading').textContent = 'إضافة سورة وصفحة اليوم';
       sessionSurahSelect.value = '';
       sessionPageInput.value = '';
     }
     openModal(sessionModal);
-  });
+  }
 
-
+  if (openSessionModalG1Btn) {
+    openSessionModalG1Btn.addEventListener('click', () => openSessionModalForGroup('group1'));
+  }
+  if (openSessionModalG2Btn) {
+    openSessionModalG2Btn.addEventListener('click', () => openSessionModalForGroup('group2'));
+  }
 
   sessionForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const dateStr = getTodayStr();
+    const groupKey = sessionTargetGroup ? sessionTargetGroup.value : 'group1';
     const surahName = sessionSurahSelect.value;
     const pageNumber = Number(sessionPageInput.value);
 
@@ -262,12 +320,13 @@ document.addEventListener('DOMContentLoaded', () => {
       surahName,
       surahNumber,
       pageNumber
-    });
+    }, groupKey);
 
     closeModal(sessionModal);
     renderTodaySession();
     renderHistoryCards();
-    showToast('تم حفظ المقرر اليومي بنجاح 📖', 'success');
+    const groupNameArabic = (groupKey === 'group1') ? 'المجموعة الأولى' : 'المجموعة الثانية';
+    showToast(`تم حفظ مقرر ${groupNameArabic} بنجاح 📖`, 'success');
   });
 
   // -------------------------------------------------------------
@@ -518,17 +577,18 @@ document.addEventListener('DOMContentLoaded', () => {
     card.addEventListener('click', () => {
       courseOptionCards.forEach(c => c.classList.remove('active'));
       card.classList.add('active');
-      selectedCourseForNewStudent = card.dataset.course || 'course_taheeli_amma';
+      selectedCourseForNewStudent = card.dataset.course || 'course_tamheedi_amma';
     });
   });
 
   if (confirmCourseSelectBtn) {
     confirmCourseSelectBtn.addEventListener('click', () => {
       if (!pendingNewStudentData) return;
+      const isL2 = (selectedCourseForNewStudent === 'course_taheeli_qad_sami' || selectedCourseForNewStudent === 'course_tamheedi_qad_sami');
       const dataToSave = {
         ...pendingNewStudentData,
         currentCourseId: selectedCourseForNewStudent,
-        completedCourseIds: (selectedCourseForNewStudent === 'course_tamheedi_qad_sami') ? ['course_taheeli_amma'] : []
+        completedCourseIds: isL2 ? ['course_tamheedi_amma'] : []
       };
       const createdStudent = saveStudent(dataToSave);
       closeModal(courseSelectModal);
@@ -580,20 +640,21 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       if (editId) {
         // حالة تعديل طالب موجود مسبقاً
-        const selectedCourse = studentCourseSelect ? studentCourseSelect.value : (currentSelectedStudent ? currentSelectedStudent.currentCourseId : 'course_taheeli_amma');
+        const selectedCourse = studentCourseSelect ? studentCourseSelect.value : (currentSelectedStudent ? currentSelectedStudent.currentCourseId : 'course_tamheedi_amma');
+        const isL2 = (selectedCourse === 'course_taheeli_qad_sami' || selectedCourse === 'course_tamheedi_qad_sami');
         saveStudent({
           id: editId,
           fullName,
           nationalId: idCheck.cleanId,
           currentCourseId: selectedCourse,
-          completedCourseIds: (selectedCourse === 'course_tamheedi_qad_sami') ? ['course_taheeli_amma'] : (currentSelectedStudent ? currentSelectedStudent.completedCourseIds : []),
+          completedCourseIds: isL2 ? ['course_tamheedi_amma'] : (currentSelectedStudent ? currentSelectedStudent.completedCourseIds : []),
           residence,
           phone,
           birthDate,
           birthPlace
         });
 
-        if (selectedCourse === 'course_tamheedi_qad_sami') {
+        if (isL2) {
           markAmmaAsCompletedForStudent(editId);
         }
 
@@ -617,9 +678,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (courseSelectStudentName) {
           courseSelectStudentName.textContent = `"${fullName}"`;
         }
-        selectedCourseForNewStudent = 'course_taheeli_amma';
+        selectedCourseForNewStudent = 'course_tamheedi_amma';
         courseOptionCards.forEach(c => {
-          if (c.dataset.course === 'course_taheeli_amma') c.classList.add('active');
+          if (c.dataset.course === 'course_tamheedi_amma') c.classList.add('active');
           else c.classList.remove('active');
         });
         closeModal(studentModal);
@@ -640,9 +701,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const completedSurahs = new Set(getStudentRecitations(student.id));
     const nextSurahInViewingCourse = getNextSurahForStudent(student.id, viewingCourse.id);
 
-    const isStudentInTamheedi = (student.currentCourseId === 'course_tamheedi_qad_sami');
-    const isTaheeliCompleted = isCourseCompletedForStudent(student.id, 'course_taheeli_amma') || isStudentInTamheedi;
-    const isTamheediCompleted = isCourseCompletedForStudent(student.id, 'course_tamheedi_qad_sami');
+    const isStudentInLevel2 = (student.currentCourseId === 'course_taheeli_qad_sami' || student.currentCourseId === 'course_tamheedi_qad_sami');
+    const isTamheediCompleted = isCourseCompletedForStudent(student.id, 'course_tamheedi_amma') || isStudentInLevel2;
+    const isTaheeliCompleted = isCourseCompletedForStudent(student.id, 'course_taheeli_qad_sami');
 
     // 1. تحديث أزرار وحالات التبويبات
     const tabTaheeli = document.getElementById('tab-btn-taheeli');
@@ -650,32 +711,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusTaheeli = document.getElementById('tab-status-taheeli');
     const statusTamheedi = document.getElementById('tab-status-tamheedi');
 
+    const isViewingTamheedi = (currentProfileViewingCourseId === 'course_tamheedi_amma' || currentProfileViewingCourseId === 'course_taheeli_amma');
+
     if (tabTaheeli && tabTamheedi) {
-      if (currentProfileViewingCourseId === 'course_taheeli_amma') {
-        tabTaheeli.classList.add('active');
-        tabTamheedi.classList.remove('active');
-      } else {
+      if (isViewingTamheedi) {
         tabTamheedi.classList.add('active');
         tabTaheeli.classList.remove('active');
+      } else {
+        tabTaheeli.classList.add('active');
+        tabTamheedi.classList.remove('active');
       }
 
-      if (isStudentInTamheedi) {
-        if (statusTaheeli) {
-          statusTaheeli.textContent = 'مكتملة 🌟';
-          statusTaheeli.className = 'tab-status-chip completed';
-        }
+      if (isStudentInLevel2) {
         if (statusTamheedi) {
-          statusTamheedi.textContent = isTamheediCompleted ? 'مكتملة 🌟' : 'الحالية 🎯';
-          statusTamheedi.className = 'tab-status-chip ' + (isTamheediCompleted ? 'completed' : 'current');
+          statusTamheedi.textContent = 'مكتملة 🌟';
+          statusTamheedi.className = 'tab-status-chip completed';
         }
-      } else {
         if (statusTaheeli) {
           statusTaheeli.textContent = isTaheeliCompleted ? 'مكتملة 🌟' : 'الحالية 🎯';
           statusTaheeli.className = 'tab-status-chip ' + (isTaheeliCompleted ? 'completed' : 'current');
         }
+      } else {
         if (statusTamheedi) {
-          statusTamheedi.textContent = 'التالية ⏳';
-          statusTamheedi.className = 'tab-status-chip inactive';
+          statusTamheedi.textContent = isTamheediCompleted ? 'مكتملة 🌟' : 'الحالية 🎯';
+          statusTamheedi.className = 'tab-status-chip ' + (isTamheediCompleted ? 'completed' : 'current');
+        }
+        if (statusTaheeli) {
+          statusTaheeli.textContent = 'التالية ⏳';
+          statusTaheeli.className = 'tab-status-chip inactive';
         }
       }
     }
@@ -694,7 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
       titleEl.textContent = `${viewingCourse.icon} ${viewingCourse.name} (${totalCount} سورة)`;
     }
     if (subtitleEl) {
-      if (viewingCourse.id === 'course_tamheedi_qad_sami') {
+      if (viewingCourse.id === 'course_taheeli_qad_sami' || viewingCourse.id === 'course_tamheedi_qad_sami') {
         subtitleEl.textContent = 'يبدأ التسميع من سورة المجادلة حتى سورة التحريم';
       } else {
         subtitleEl.textContent = 'يبدأ التسميع من سورة النبأ حتى سورة الناس';
@@ -707,10 +770,10 @@ document.addEventListener('DOMContentLoaded', () => {
       progressBarFill.style.width = `${percent}%`;
     }
 
-    // 3. إظهار بانر الترقية إذا كان الطالب في التأهيلية وأتمها
+    // 3. إظهار بانر الترقية إذا كان الطالب في التمهيدية (عم) وأتمها
     const promoBanner = document.getElementById('course-promotion-banner');
     if (promoBanner) {
-      if (!isStudentInTamheedi && isTaheeliCompleted) {
+      if (!isStudentInLevel2 && isTamheediCompleted) {
         promoBanner.style.display = 'flex';
       } else {
         promoBanner.style.display = 'none';
@@ -757,11 +820,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabBtnTamheedi = document.getElementById('tab-btn-tamheedi');
   if (tabBtnTaheeli && tabBtnTamheedi) {
     tabBtnTaheeli.addEventListener('click', () => {
-      currentProfileViewingCourseId = 'course_taheeli_amma';
+      currentProfileViewingCourseId = 'course_taheeli_qad_sami';
       if (currentSelectedStudent) renderProfileCourseTracker(currentSelectedStudent);
     });
     tabBtnTamheedi.addEventListener('click', () => {
-      currentProfileViewingCourseId = 'course_tamheedi_qad_sami';
+      currentProfileViewingCourseId = 'course_tamheedi_amma';
       if (currentSelectedStudent) renderProfileCourseTracker(currentSelectedStudent);
     });
   }
@@ -772,10 +835,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!currentSelectedStudent) return;
       promoteStudentToNextCourse(currentSelectedStudent.id);
       currentSelectedStudent = getStudentById(currentSelectedStudent.id);
-      currentProfileViewingCourseId = 'course_tamheedi_qad_sami';
+      currentProfileViewingCourseId = 'course_taheeli_qad_sami';
       renderProfileCourseTracker(currentSelectedStudent);
       renderStudentsList();
-      showToast('تهانينا ومبارك! 🎓 تم ترقية الطالب إلى الدورة التمهيدية (جزء قد سمع) بنجاح!', 'success');
+      showToast('تهانينا ومبارك! 🎓 تم ترقية الطالب إلى الدورة التأهيلية (جزء قد سمع) بنجاح!', 'success');
     });
   }
 
@@ -810,7 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentCourseEl.textContent = currentCourse.shortName;
     }
 
-    currentProfileViewingCourseId = student.currentCourseId || 'course_taheeli_amma';
+    currentProfileViewingCourseId = student.currentCourseId || 'course_tamheedi_amma';
 
     // عرض ومتابعة سور الدورة
     renderProfileCourseTracker(student);
@@ -1073,9 +1136,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     studentEditId.value = currentSelectedStudent.id;
     studentModalHeading.textContent = 'تعديل بيانات الطالب';
-    if (studentModalIcon) studentModalIcon.textContent = '✏️';
     if (studentCourseGroup) studentCourseGroup.style.display = 'block';
-    if (studentCourseSelect) studentCourseSelect.value = currentSelectedStudent.currentCourseId || 'course_taheeli_amma';
+    if (studentCourseSelect) {
+      const isL2 = (currentSelectedStudent.currentCourseId === 'course_taheeli_qad_sami' || currentSelectedStudent.currentCourseId === 'course_tamheedi_qad_sami');
+      studentCourseSelect.value = isL2 ? 'course_taheeli_qad_sami' : 'course_tamheedi_amma';
+    }
     if (studentSaveBtn) studentSaveBtn.textContent = 'حفظ التعديلات';
 
     studentNameInput.value = currentSelectedStudent.fullName;
@@ -1401,9 +1466,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = 'history-card';
 
-      let sessionText = 'لم يُسجل مقرر لهذا اليوم';
-      if (session && session.surahName) {
-        sessionText = `سورة ${session.surahName} - صفحة ${session.pageNumber}`;
+      let sessionHtml = '';
+      const g1 = session && session.group1;
+      const g2 = session && session.group2;
+
+      if ((g1 && g1.surahName) || (g2 && g2.surahName)) {
+        const parts = [];
+        if (g1 && g1.surahName) {
+          parts.push(`<span><strong style="color: #059669;">المجموعة 1:</strong> سورة ${g1.surahName} (ص ${g1.pageNumber})</span>`);
+        }
+        if (g2 && g2.surahName) {
+          parts.push(`<span><strong style="color: #4f46e5;">المجموعة 2:</strong> سورة ${g2.surahName} (ص ${g2.pageNumber})</span>`);
+        }
+        sessionHtml = parts.join(' &nbsp;|&nbsp; ');
+      } else if (session && session.surahName) {
+        sessionHtml = `سورة ${session.surahName} - صفحة ${session.pageNumber}`;
+      } else {
+        sessionHtml = 'لم يُسجل مقرر لهذا اليوم';
       }
 
       // وسوم أسماء الطلاب الغائبين
@@ -1427,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="history-session-info">
               <span>📖</span>
-              <span>${sessionText}</span>
+              <span>${sessionHtml}</span>
             </div>
           </div>
           <div class="history-card-badges">

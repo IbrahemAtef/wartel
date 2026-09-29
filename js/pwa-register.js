@@ -4,10 +4,21 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then((registration) => {
         console.log('PWA Service Worker registered successfully:', registration.scope);
+        // التحقق التلقائي الفوري من وجود إصدار جديد
+        registration.update();
       })
       .catch((error) => {
         console.warn('PWA Service Worker registration failed:', error);
       });
+  });
+
+  // عند تفعيل إصدار جديد من Service Worker، إعادة تحميل الصفحة لظهور التعديلات فوراً
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
   });
 }
 

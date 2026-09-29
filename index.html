@@ -16,8 +16,8 @@
   <link rel="icon" type="image/png" href="icons/favicon.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/exam-cards.css">
+  <link rel="stylesheet" href="css/style.css?v=32">
+  <link rel="stylesheet" href="css/exam-cards.css?v=32">
 </head>
 <body>
 
@@ -50,31 +50,67 @@
     <!-- 1. الشاشة الرئيسية -->
     <main class="main-content" id="home-view">
 
-      <!-- بطاقة مقرر اليوم: السورة والصفحة -->
-      <section class="daily-session-card" aria-label="مقرر ورد اليوم">
-        <div class="session-header">
-          <div class="session-date-box">
-            <span class="session-date-label">📅 تاريخ اليوم</span>
-            <span class="session-date-text" id="display-today-date">جاري التحميل...</span>
+      <!-- قسم مقررات ورد اليوم للمجموعتين (UI/UX Pro Max) -->
+      <section class="daily-sessions-wrapper" aria-label="مقررات ورد اليوم للمجموعتين">
+        
+        <!-- 1. بطاقة مقرر المجموعة الأولى -->
+        <div class="daily-session-card group-card group-1" aria-label="مقرر ورد المجموعة الأولى">
+          <div class="session-header">
+            <div class="session-header-right">
+              <span class="session-group-tag tag-group-1">🌿 المجموعة الأولى</span>
+              <div class="session-date-box">
+                <span class="session-date-label">📅 تاريخ اليوم</span>
+                <span class="session-date-text display-today-date" id="display-today-date">جاري التحميل...</span>
+              </div>
+            </div>
+            <span class="session-badge" id="session-status-badge-g1">مقرر مسجل ✓</span>
           </div>
-          <span class="session-badge" id="session-status-badge">مقرر اليوم</span>
+
+          <div class="session-body" id="session-display-box-g1">
+            <div class="quran-info">
+              <div class="quran-surah-title" id="display-surah-name-g1">سورة البقرة</div>
+              <div class="quran-page-title">الصفحة: <span class="quran-page-number" id="display-page-number-g1">15</span></div>
+            </div>
+            <div class="quran-icon-art">✨</div>
+          </div>
+
+          <div class="session-actions">
+            <button type="button" class="btn btn-secondary btn-block open-session-btn" id="open-session-modal-g1-btn" data-group="group1">
+              <span>✏️</span>
+              <span id="session-btn-text-g1">تعديل مقرر المجموعة الأولى</span>
+            </button>
+          </div>
         </div>
 
-        <div class="session-body" id="session-display-box">
-          <!-- يتم ملؤها ديناميكياً -->
-          <div class="quran-info">
-            <div class="quran-surah-title" id="display-surah-name">سورة البقرة</div>
-            <div class="quran-page-title">الصفحة: <span class="quran-page-number" id="display-page-number">15</span></div>
+        <!-- 2. بطاقة مقرر المجموعة الثانية -->
+        <div class="daily-session-card group-card group-2" aria-label="مقرر ورد المجموعة الثانية">
+          <div class="session-header">
+            <div class="session-header-right">
+              <span class="session-group-tag tag-group-2">💎 المجموعة الثانية</span>
+              <div class="session-date-box">
+                <span class="session-date-label">📅 تاريخ اليوم</span>
+                <span class="session-date-text display-today-date" id="display-today-date-g2">جاري التحميل...</span>
+              </div>
+            </div>
+            <span class="session-badge" id="session-status-badge-g2">مقرر مسجل ✓</span>
           </div>
-          <div class="quran-icon-art">✨</div>
+
+          <div class="session-body" id="session-display-box-g2">
+            <div class="quran-info">
+              <div class="quran-surah-title" id="display-surah-name-g2">سورة آل عمران</div>
+              <div class="quran-page-title">الصفحة: <span class="quran-page-number" id="display-page-number-g2">50</span></div>
+            </div>
+            <div class="quran-icon-art">🌟</div>
+          </div>
+
+          <div class="session-actions">
+            <button type="button" class="btn btn-secondary btn-block open-session-btn" id="open-session-modal-g2-btn" data-group="group2">
+              <span>✏️</span>
+              <span id="session-btn-text-g2">تعديل مقرر المجموعة الثانية</span>
+            </button>
+          </div>
         </div>
 
-        <div class="session-actions">
-          <button type="button" class="btn btn-secondary btn-block" id="open-session-modal-btn">
-            <span>✏️</span>
-            <span id="session-btn-text">تعديل اسم السورة ورقم الصفحة</span>
-          </button>
-        </div>
       </section>
 
       <!-- شبكة أزرار الإجراءات السريعة -->
@@ -225,8 +261,11 @@
       </div>
 
       <form id="session-form">
+        <input type="hidden" id="session-target-group" value="group1">
         <div class="modal-body">
-          
+          <div class="session-modal-group-indicator" id="session-modal-group-indicator">
+            <span class="group-indicator-badge tag-group-1" id="session-group-badge">🌿 مقرر المجموعة الأولى</span>
+          </div>
 
           <div class="form-group">
             <label class="form-label" for="session-surah-select">
@@ -313,8 +352,8 @@
               <span class="hint">مسار الطالب</span>
             </label>
             <select id="student-course-select" class="form-select">
-              <option value="course_taheeli_amma">الدورة التأهيلية (جزء عم - 37 سورة)</option>
-              <option value="course_tamheedi_qad_sami">الدورة التمهيدية (جزء قد سمع - 9 سور)</option>
+              <option value="course_tamheedi_amma">الدورة التمهيدية (جزء عم - 37 سورة)</option>
+              <option value="course_taheeli_qad_sami">الدورة التأهيلية (جزء قد سمع - 9 سور)</option>
             </select>
           </div>
         </div>
@@ -341,15 +380,15 @@
       </p>
 
       <div class="course-cards-options" id="course-cards-options">
-        <!-- الخيار 1: الدورة التأهيلية (جزء عم) -->
-        <div class="course-option-card active" data-course="course_taheeli_amma" id="opt-course-taheeli">
+        <!-- الخيار 1: الدورة التمهيدية (جزء عم) -->
+        <div class="course-option-card active" data-course="course_tamheedi_amma" id="opt-course-tamheedi">
           <div class="course-card-radio">
             <span class="radio-circle"></span>
           </div>
           <div class="course-card-content">
             <div class="course-card-top">
               <span class="course-card-icon">📖</span>
-              <div class="course-card-title">الدورة التأهيلية (جزء عم)</div>
+              <div class="course-card-title">الدورة التمهيدية (جزء عم)</div>
               <span class="course-card-badge">37 سورة</span>
             </div>
             <p class="course-card-desc">
@@ -358,19 +397,19 @@
           </div>
         </div>
 
-        <!-- الخيار 2: الدورة التمهيدية (جزء قد سمع) -->
-        <div class="course-option-card" data-course="course_tamheedi_qad_sami" id="opt-course-tamheedi">
+        <!-- الخيار 2: الدورة التأهيلية (جزء قد سمع) -->
+        <div class="course-option-card" data-course="course_taheeli_qad_sami" id="opt-course-taheeli">
           <div class="course-card-radio">
             <span class="radio-circle"></span>
           </div>
           <div class="course-card-content">
             <div class="course-card-top">
               <span class="course-card-icon">🎓</span>
-              <div class="course-card-title">الدورة التمهيدية (جزء قد سمع)</div>
+              <div class="course-card-title">الدورة التأهيلية (جزء قد سمع)</div>
               <span class="course-card-badge">9 سور</span>
             </div>
             <p class="course-card-desc">
-              للطالب الذي أتم جزء عم؛ يُعتمد إتمامه للدورة التأهيلية ويبدأ فوراً من جزء قد سمع (من سورة المجادلة حتى سورة التحريم).
+              للطالب الذي أتم جزء عم؛ يُعتمد إتمامه للدورة التمهيدية ويبدأ فوراً من جزء قد سمع (من سورة المجادلة حتى سورة التحريم).
             </p>
           </div>
         </div>
@@ -434,22 +473,22 @@
         <div class="profile-courses-tracker-section">
           <!-- تبويبات الدورات القرآنية للطالب -->
           <div class="profile-course-tabs" id="profile-course-tabs" role="tablist">
-            <button type="button" class="course-tab-btn active" id="tab-btn-taheeli" data-course="course_taheeli_amma" role="tab">
+            <button type="button" class="course-tab-btn active" id="tab-btn-tamheedi" data-course="course_tamheedi_amma" role="tab">
               <span class="tab-icon">📖</span>
-              <span class="tab-title">الدورة التأهيلية (عم)</span>
-              <span class="tab-status-chip" id="tab-status-taheeli">الحالية 🎯</span>
+              <span class="tab-title">الدورة التمهيدية (عم)</span>
+              <span class="tab-status-chip" id="tab-status-tamheedi">الحالية 🎯</span>
             </button>
-            <button type="button" class="course-tab-btn" id="tab-btn-tamheedi" data-course="course_tamheedi_qad_sami" role="tab">
+            <button type="button" class="course-tab-btn" id="tab-btn-taheeli" data-course="course_taheeli_qad_sami" role="tab">
               <span class="tab-icon">🎓</span>
-              <span class="tab-title">الدورة التمهيدية (قد سمع)</span>
-              <span class="tab-status-chip" id="tab-status-tamheedi">غير مسجل</span>
+              <span class="tab-title">الدورة التأهيلية (قد سمع)</span>
+              <span class="tab-status-chip" id="tab-status-taheeli">غير مسجل</span>
             </button>
           </div>
 
           <div class="profile-course-content-card">
             <div class="profile-section-header">
               <div>
-                <div class="profile-history-title" id="profile-course-title">📖 الدورة التأهيلية (جزء عم)</div>
+                <div class="profile-history-title" id="profile-course-title">📖 الدورة التمهيدية (جزء عم)</div>
                 <div class="profile-section-subtitle" id="profile-course-subtitle">يبدأ التسميع من سورة النبأ حتى سورة الناس</div>
               </div>
               <span class="juz-progress-badge" id="profile-juz-progress">0 / 37</span>
@@ -464,10 +503,10 @@
             <div id="course-promotion-banner" class="course-promotion-banner" style="display: none;">
               <div class="promotion-msg">
                 <span>🌟</span>
-                <span><strong>مبارك!</strong> أتم الطالب كافة سور الدورة التأهيلية بنجاح.</span>
+                <span><strong>مبارك!</strong> أتم الطالب كافة سور الدورة التمهيدية بنجاح.</span>
               </div>
               <button type="button" class="btn btn-gold btn-sm" id="promote-student-btn">
-                <span>🎓 ترقية للدورة التمهيدية (قد سمع)</span>
+                <span>🎓 ترقية للدورة التأهيلية (قد سمع)</span>
               </button>
             </div>
 
@@ -585,13 +624,13 @@
             <span style="font-size: 0.75rem; color: var(--text-tertiary);">الطالب:</span>
             <div id="recitation-student-name" style="font-size: 1.05rem; font-weight: 800; color: var(--primary);"></div>
           </div>
-          <span class="history-absent-badge no-absent" id="recitation-course-badge" style="font-size: 0.76rem;">التأهيلية (عم)</span>
+          <span class="history-absent-badge no-absent" id="recitation-course-badge" style="font-size: 0.76rem;">التمهيدية (عم)</span>
         </div>
 
         <div class="next-surah-highlight-card" id="recitation-suggested-box">
           <div style="font-size: 0.78rem; font-weight: 700; color: var(--accent-gold);">🎯 السورة التالية المقررة في الدور:</div>
           <div id="recitation-suggested-name" style="font-size: 1.25rem; font-weight: 900; color: var(--text-primary); margin: 4px 0;">سورة النبأ</div>
-          <div id="recitation-course-hint" style="font-size: 0.75rem; color: var(--text-secondary);">الدورة التأهيلية (جزء عم)</div>
+          <div id="recitation-course-hint" style="font-size: 0.75rem; color: var(--text-secondary);">الدورة التمهيدية (جزء عم)</div>
         </div>
 
         <div class="form-group">
@@ -840,9 +879,9 @@
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- ملفات الجافاسكريبت -->
-  <script src="js/quran-data.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/pwa-register.js"></script>
+  <script src="js/quran-data.js?v=32"></script>
+  <script src="js/storage.js?v=32"></script>
+  <script src="js/app.js?v=32"></script>
+  <script src="js/pwa-register.js?v=32"></script>
 </body>
 </html>

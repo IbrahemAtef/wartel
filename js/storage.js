@@ -142,8 +142,8 @@ function saveStudent(studentData) {
       ...studentData,
       fullName: studentData.fullName.trim(),
       nationalId: validation.cleanId,
-      currentCourseId: studentData.currentCourseId || students[index].currentCourseId || 'course_taheeli_amma',
-      completedCourseIds: studentData.completedCourseIds || students[index].completedCourseIds || (studentData.currentCourseId === 'course_tamheedi_qad_sami' ? ['course_taheeli_amma'] : []),
+      currentCourseId: studentData.currentCourseId || students[index].currentCourseId || 'course_tamheedi_amma',
+      completedCourseIds: studentData.completedCourseIds || students[index].completedCourseIds || ((studentData.currentCourseId === 'course_taheeli_qad_sami' || studentData.currentCourseId === 'course_tamheedi_qad_sami') ? ['course_tamheedi_amma'] : []),
       residence: (studentData.residence || '').trim(),
       phone: (studentData.phone || '').trim(),
       birthDate: normalizeToIsoDate(studentData.birthDate) || '',
@@ -158,8 +158,8 @@ function saveStudent(studentData) {
       id: 'std_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       fullName: studentData.fullName.trim(),
       nationalId: validation.cleanId,
-      currentCourseId: studentData.currentCourseId || 'course_taheeli_amma',
-      completedCourseIds: studentData.completedCourseIds || (studentData.currentCourseId === 'course_tamheedi_qad_sami' ? ['course_taheeli_amma'] : []),
+      currentCourseId: studentData.currentCourseId || 'course_tamheedi_amma',
+      completedCourseIds: studentData.completedCourseIds || ((studentData.currentCourseId === 'course_taheeli_qad_sami' || studentData.currentCourseId === 'course_tamheedi_qad_sami') ? ['course_tamheedi_amma'] : []),
       residence: (studentData.residence || '').trim(),
       phone: (studentData.phone || '').trim(),
       birthDate: normalizeToIsoDate(studentData.birthDate) || '',
@@ -171,8 +171,8 @@ function saveStudent(studentData) {
     students.sort((a, b) => a.fullName.localeCompare(b.fullName, 'ar'));
     safeSet(STORAGE_KEYS.STUDENTS, students);
 
-    // إذا سجل في الدورة التمهيدية (جزء قد سمع) مباشرة، نعتمد إتمامه لجزء عم تلقائياً
-    if (newStudent.currentCourseId === 'course_tamheedi_qad_sami') {
+    // إذا سجل في الدورة التأهيلية (جزء قد سمع) مباشرة، نعتمد إتمامه لجزء عم (الدورة التمهيدية) تلقائياً
+    if (newStudent.currentCourseId === 'course_taheeli_qad_sami' || newStudent.currentCourseId === 'course_tamheedi_qad_sami') {
       markAmmaAsCompletedForStudent(newStudent.id);
     }
 
@@ -232,15 +232,15 @@ function getSurahDetailsById(surahId) {
 }
 
 function getCourseById(courseId) {
-  if (courseId === 'course_tamheedi_qad_sami' || courseId === 'juz_qad_sami') {
-    return QURAN_COURSES.TAMHEEDI_QAD_SAMI;
+  if (courseId === 'course_taheeli_qad_sami' || courseId === 'course_tamheedi_qad_sami' || courseId === 'juz_qad_sami') {
+    return QURAN_COURSES.TAHEELI_QAD_SAMI;
   }
-  return QURAN_COURSES.TAHEELI_AMMA;
+  return QURAN_COURSES.TAMHEEDI_AMMA;
 }
 
 function getStudentActiveCourse(student) {
-  if (!student) return QURAN_COURSES.TAHEELI_AMMA;
-  const courseId = student.currentCourseId || 'course_taheeli_amma';
+  if (!student) return QURAN_COURSES.TAMHEEDI_AMMA;
+  const courseId = student.currentCourseId || 'course_tamheedi_amma';
   return getCourseById(courseId);
 }
 
@@ -262,8 +262,8 @@ function promoteStudentToNextCourse(studentId) {
   if (!student) return null;
   const updated = {
     ...student,
-    currentCourseId: 'course_tamheedi_qad_sami',
-    completedCourseIds: Array.from(new Set([...(student.completedCourseIds || []), 'course_taheeli_amma']))
+    currentCourseId: 'course_taheeli_qad_sami',
+    completedCourseIds: Array.from(new Set([...(student.completedCourseIds || []), 'course_tamheedi_amma', 'course_taheeli_amma']))
   };
   markAmmaAsCompletedForStudent(studentId);
   return saveStudent(updated);
@@ -304,12 +304,12 @@ function getStudentCourseAchievementData(student) {
   const isCurrentCourseFinished = courseSurahs.length > 0 && completedInCourse === courseSurahs.length;
 
   // المستوى التراكمي للدورة:
-  // - 3: أتم الدورة التمهيدية (أعلى مرتبة حالياً)
-  // - 2: مسجل في الدورة التمهيدية (قد سمع)
-  // - 1.9: أتم الدورة التأهيلية بالكامل (37 سورة) وبانتظار الترقية
-  // - 1: مسجل في الدورة التأهيلية (عم)
+  // - 3: أتم الدورة التأهيلية (جزء قد سمع - أعلى مرتبة حالياً)
+  // - 2: مسجل في الدورة التأهيلية (قد سمع)
+  // - 1.9: أتم الدورة التمهيدية بالكامل (جزء عم - 37 سورة) وبانتظار الترقية
+  // - 1: مسجل في الدورة التمهيدية (عم)
   let courseLevel = 1;
-  if (course.id === 'course_tamheedi_qad_sami') {
+  if (course.id === 'course_taheeli_qad_sami' || course.id === 'course_tamheedi_qad_sami') {
     courseLevel = isCurrentCourseFinished ? 3 : 2;
   } else if (isCurrentCourseFinished) {
     courseLevel = 1.9;
@@ -329,7 +329,7 @@ function getStudentCourseAchievementData(student) {
 
 /**
  * دالة مقارنة وترتيب الطلاب حسب الإنجاز في الدورات:
- * 1. الأولوية الأولى: مستوى الدورة التراكمي (التمهيدية أولاً)
+ * 1. الأولوية الأولى: مستوى الدورة التراكمي (التأهيلية أولاً)
  * 2. الأولوية الثانية: عدد السور المنجزة في الدورة الحالية (الأعلى أولاً)
  * 3. الأولوية الثالثة: إجمالي عدد السور المنجزة عامة (الأعلى أولاً)
  * 4. كسر التعادل: الترتيب الأبجدي حسب اسم الطالب (أ - ي)
@@ -386,7 +386,7 @@ function getStudentRecitations(studentId) {
 // معرفة السورة التالية في الدور حسب الدورة النشطة للطالب
 function getNextSurahForStudent(studentId, courseId = null) {
   const student = getStudentById(studentId);
-  const targetCourseId = courseId || (student ? student.currentCourseId : 'course_taheeli_amma');
+  const targetCourseId = courseId || (student ? student.currentCourseId : 'course_tamheedi_amma');
   const course = getCourseById(targetCourseId);
   const surahs = course.surahs || JUZ_AMMA_SURAHS;
   const completedIds = new Set(getStudentRecitations(studentId));
@@ -453,17 +453,48 @@ function getAllSessions() {
   return safeGet(STORAGE_KEYS.SESSIONS, {});
 }
 
+function normalizeSessionEntry(raw) {
+  if (!raw) return null;
+  // استخراج بيانات المجموعة الأولى مع دعم التوافق مع السجلات القديمة
+  const group1 = raw.group1 ? {
+    surahName: (raw.group1.surahName || '').trim(),
+    surahNumber: Number(raw.group1.surahNumber) || 1,
+    pageNumber: Number(raw.group1.pageNumber) || 1
+  } : (raw.surahName ? {
+    surahName: (raw.surahName || '').trim(),
+    surahNumber: Number(raw.surahNumber) || 1,
+    pageNumber: Number(raw.pageNumber) || 1
+  } : null);
+
+  // استخراج بيانات المجموعة الثانية
+  const group2 = raw.group2 ? {
+    surahName: (raw.group2.surahName || '').trim(),
+    surahNumber: Number(raw.group2.surahNumber) || 1,
+    pageNumber: Number(raw.group2.pageNumber) || 1
+  } : null;
+
+  return {
+    ...raw,
+    group1,
+    group2,
+    // حقول الجذر للتوافق الرجعي العام
+    surahName: (group1 && group1.surahName) || (group2 && group2.surahName) || '',
+    surahNumber: (group1 && group1.surahNumber) || (group2 && group2.surahNumber) || 1,
+    pageNumber: (group1 && group1.pageNumber) || (group2 && group2.pageNumber) || 1
+  };
+}
+
 function getLatestRecordedSession() {
   const sessions = getAllSessions();
   const dates = Object.keys(sessions).sort((a, b) => b.localeCompare(a));
   if (dates.length === 0) return null;
-  return sessions[dates[0]] || null;
+  return normalizeSessionEntry(sessions[dates[0]]);
 }
 
 function getDailySession(dateStr = getTodayStr()) {
   const sessions = getAllSessions();
   if (sessions[dateStr]) {
-    return sessions[dateStr];
+    return normalizeSessionEntry(sessions[dateStr]);
   }
   if (dateStr === getTodayStr()) {
     return getLatestRecordedSession();
@@ -471,17 +502,34 @@ function getDailySession(dateStr = getTodayStr()) {
   return null;
 }
 
-function saveDailySession(dateStr, sessionData) {
+function saveDailySession(dateStr, sessionData, groupKey = 'group1') {
   const cleanDate = normalizeToIsoDate(dateStr) || getTodayStr();
   const sessions = getAllSessions();
-  sessions[cleanDate] = {
+  const existingRaw = sessions[cleanDate] || {};
+  const existingNorm = normalizeSessionEntry(existingRaw) || {};
+
+  const newGroupData = {
     surahName: (sessionData.surahName || '').trim(),
     surahNumber: Number(sessionData.surahNumber) || 1,
     pageNumber: Number(sessionData.pageNumber) || 1,
     updatedAt: new Date().toISOString()
   };
+
+  const group1 = groupKey === 'group1' ? newGroupData : existingNorm.group1;
+  const group2 = groupKey === 'group2' ? newGroupData : existingNorm.group2;
+
+  sessions[cleanDate] = {
+    ...existingRaw,
+    group1,
+    group2,
+    surahName: (group1 && group1.surahName) || (group2 && group2.surahName) || newGroupData.surahName,
+    surahNumber: (group1 && group1.surahNumber) || (group2 && group2.surahNumber) || newGroupData.surahNumber,
+    pageNumber: (group1 && group1.pageNumber) || (group2 && group2.pageNumber) || newGroupData.pageNumber,
+    updatedAt: new Date().toISOString()
+  };
+
   safeSet(STORAGE_KEYS.SESSIONS, sessions);
-  return sessions[cleanDate];
+  return normalizeSessionEntry(sessions[cleanDate]);
 }
 
 // -------------------------------------------------------------
@@ -589,7 +637,7 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_1',
       fullName: 'عبدالرحمن إبراهيم المطيري',
       nationalId: '109283746',
-      currentCourseId: 'course_taheeli_amma',
+      currentCourseId: 'course_tamheedi_amma',
       completedCourseIds: [],
       phone: '0551234567',
       birthDate: '2012-04-12',
@@ -600,7 +648,7 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_2',
       fullName: 'عمر خالد الدوسري',
       nationalId: '108374659',
-      currentCourseId: 'course_taheeli_amma',
+      currentCourseId: 'course_tamheedi_amma',
       completedCourseIds: [],
       phone: '0547654321',
       birthDate: '2011-09-20',
@@ -611,7 +659,7 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_3',
       fullName: 'يوسف محمد القحطاني',
       nationalId: '107465982',
-      currentCourseId: 'course_taheeli_amma',
+      currentCourseId: 'course_tamheedi_amma',
       completedCourseIds: [],
       phone: '0509876543',
       birthDate: '2013-01-15',
@@ -622,8 +670,8 @@ function initDemoDataIfEmpty() {
       id: 'std_demo_4',
       fullName: 'حمزة عبدالله الغامدي',
       nationalId: '106598473',
-      currentCourseId: 'course_tamheedi_qad_sami',
-      completedCourseIds: ['course_taheeli_amma'],
+      currentCourseId: 'course_taheeli_qad_sami',
+      completedCourseIds: ['course_tamheedi_amma'],
       phone: '0562345678',
       birthDate: '2012-11-03',
       birthPlace: 'مكة المكرمة',
@@ -632,12 +680,18 @@ function initDemoDataIfEmpty() {
   ];
   safeSet(STORAGE_KEYS.STUDENTS, demoStudents);
 
-    // تسجيل مقرر افتراضي لليوم
+    // تسجيل مقرر افتراضي لليوم للمجموعتين
     saveDailySession(today, {
       surahName: 'البقرة',
       surahNumber: 2,
       pageNumber: 15
-    });
+    }, 'group1');
+
+    saveDailySession(today, {
+      surahName: 'آل عمران',
+      surahNumber: 3,
+      pageNumber: 50
+    }, 'group2');
 
     // تسجيل غياب تجريبي ليوم أمس لكي يظهر في سجل الأيام السابقة فوراً
     const yesterday = new Date();
@@ -648,7 +702,13 @@ function initDemoDataIfEmpty() {
       surahName: 'البقرة',
       surahNumber: 2,
       pageNumber: 14
-    });
+    }, 'group1');
+
+    saveDailySession(yesterdayStr, {
+      surahName: 'آل عمران',
+      surahNumber: 3,
+      pageNumber: 49
+    }, 'group2');
 
     saveAttendance(yesterdayStr, ['std_demo_2']);
 
