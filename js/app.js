@@ -158,6 +158,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function openModal(modalElement) {
     modalElement.classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    // إعادة التمرير لأعلى النافذة دائماً عند الفتح
+    const form = modalElement.querySelector('form');
+    if (form) form.scrollTop = 0;
+    const body = modalElement.querySelector('.modal-body');
+    if (body) body.scrollTop = 0;
+    const alertBox = modalElement.querySelector('.modal-alert-box');
+    if (alertBox) alertBox.scrollTop = 0;
   }
 
   function closeModal(modalElement) {
