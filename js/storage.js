@@ -453,24 +453,36 @@ function getAllSessions() {
   return safeGet(STORAGE_KEYS.SESSIONS, {});
 }
 
-function normalizeSessionEntry(raw) {
+function normalizeSessionEntry(raw, targetDate = null) {
   if (!raw) return null;
   // استخراج بيانات المجموعة الأولى مع دعم التوافق مع السجلات القديمة
   const group1 = raw.group1 ? {
     surahName: (raw.group1.surahName || '').trim(),
     surahNumber: Number(raw.group1.surahNumber) || 1,
-    pageNumber: Number(raw.group1.pageNumber) || 1
+    pageNumber: Number(raw.group1.pageNumber) || 1,
+    savedDate: raw.group1.savedDate || raw.savedDate || targetDate || null,
+    sourceDate: raw.group1.sourceDate || raw.sourceDate || null,
+    isCarriedOver: !!raw.group1.isCarriedOver,
+    updatedAt: raw.group1.updatedAt || raw.updatedAt || null
   } : (raw.surahName ? {
     surahName: (raw.surahName || '').trim(),
     surahNumber: Number(raw.surahNumber) || 1,
-    pageNumber: Number(raw.pageNumber) || 1
+    pageNumber: Number(raw.pageNumber) || 1,
+    savedDate: raw.savedDate || targetDate || null,
+    sourceDate: raw.sourceDate || null,
+    isCarriedOver: false,
+    updatedAt: raw.updatedAt || null
   } : null);
 
   // استخراج بيانات المجموعة الثانية
   const group2 = raw.group2 ? {
     surahName: (raw.group2.surahName || '').trim(),
     surahNumber: Number(raw.group2.surahNumber) || 1,
-    pageNumber: Number(raw.group2.pageNumber) || 1
+    pageNumber: Number(raw.group2.pageNumber) || 1,
+    savedDate: raw.group2.savedDate || raw.savedDate || targetDate || null,
+    sourceDate: raw.group2.sourceDate || raw.sourceDate || null,
+    isCarriedOver: !!raw.group2.isCarriedOver,
+    updatedAt: raw.group2.updatedAt || raw.updatedAt || null
   } : null;
 
   return {
@@ -484,42 +496,150 @@ function normalizeSessionEntry(raw) {
   };
 }
 
-function getLatestRecordedSession() {
+function getLatestRecordedSession(beforeDate = null) {
   const sessions = getAllSessions();
-  const dates = Object.keys(sessions).sort((a, b) => b.localeCompare(a));
+  let dates = Object.keys(sessions).sort((a, b) => b.localeCompare(a));
+  if (beforeDate) {
+    dates = dates.filter(d => d < beforeDate);
+  }
   if (dates.length === 0) return null;
-  return normalizeSessionEntry(sessions[dates[0]]);
+  const bestDate = dates[0];
+  const entry = normalizeSessionEntry(sessions[bestDate], bestDate);
+  if (entry) {
+    entry._sourceDate = bestDate;
+  }
+  return entry;
+}
+
+function getSessionCarriedLabel(sourceDate) {
+  if (!sourceDate) return 'مُرحّل من آخر جلسة';
+  const todayIso = getTodayStr();
+  if (sourceDate === todayIso) return 'مقرر مسجل ✓';
+
+  const parts = sourceDate.split('-').map(Number);
+  if (parts.length !== 3) return `مُرحّل من (${sourceDate})`;
+
+  const dToday = new Date(todayIso + 'T00:00:00');
+  const dSource = new Date(sourceDate + 'T00:00:00');
+  const diffDays = Math.round((dToday - dSource) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 1) {
+    return '⏳ مُرحّل من الأمس';
+  }
+
+  const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+  const dayName = dateObj.toLocaleDateString('ar-SA', { weekday: 'long' });
+  const dmy = `${String(parts[2]).padStart(2, '0')}/${String(parts[1]).padStart(2, '0')}`;
+  return `⏳ مُرحّل من ${dayName} (${dmy})`;
 }
 
 function getDailySession(dateStr = getTodayStr()) {
+  const cleanDate = normalizeToIsoDate(dateStr) || getTodayStr();
   const sessions = getAllSessions();
-  if (sessions[dateStr]) {
-    return normalizeSessionEntry(sessions[dateStr]);
+  const isToday = (cleanDate === getTodayStr());
+
+  // 1. إذا كان التاريخ مسجلاً فعلياً في التخزين
+  if (sessions[cleanDate]) {
+    const entry = normalizeSessionEntry(sessions[cleanDate], cleanDate);
+    if (entry.group1) {
+      entry.group1.isCarriedOver = (entry.group1.savedDate !== cleanDate);
+      if (entry.group1.isCarriedOver && !entry.group1.sourceDate) {
+        entry.group1.sourceDate = entry.group1.savedDate;
+      }
+    }
+    if (entry.group2) {
+      entry.group2.isCarriedOver = (entry.group2.savedDate !== cleanDate);
+      if (entry.group2.isCarriedOver && !entry.group2.sourceDate) {
+        entry.group2.sourceDate = entry.group2.savedDate;
+      }
+    }
+    entry.isCarriedOver = false;
+    entry.sourceDate = cleanDate;
+    return entry;
   }
-  if (dateStr === getTodayStr()) {
-    return getLatestRecordedSession();
+
+  // 2. إذا كان تاريخ اليوم الحالي ولم يُسجل فيه بعد، نستعير آخر جلسة سابقة ذكياً
+  if (isToday) {
+    const latest = getLatestRecordedSession(cleanDate);
+    if (latest) {
+      const srcDate = latest._sourceDate;
+      const carried = {
+        ...latest,
+        isCarriedOver: true,
+        sourceDate: srcDate,
+        group1: latest.group1 ? {
+          ...latest.group1,
+          isCarriedOver: true,
+          sourceDate: srcDate,
+          savedDate: srcDate
+        } : null,
+        group2: latest.group2 ? {
+          ...latest.group2,
+          isCarriedOver: true,
+          sourceDate: srcDate,
+          savedDate: srcDate
+        } : null
+      };
+      return carried;
+    }
   }
+
   return null;
 }
 
 function saveDailySession(dateStr, sessionData, groupKey = 'group1') {
   const cleanDate = normalizeToIsoDate(dateStr) || getTodayStr();
   const sessions = getAllSessions();
-  const existingRaw = sessions[cleanDate] || {};
-  const existingNorm = normalizeSessionEntry(existingRaw) || {};
+  const existingRaw = sessions[cleanDate] || null;
+  const existingNorm = existingRaw ? normalizeSessionEntry(existingRaw, cleanDate) : null;
+  const latestPrior = getLatestRecordedSession(cleanDate);
 
   const newGroupData = {
     surahName: (sessionData.surahName || '').trim(),
     surahNumber: Number(sessionData.surahNumber) || 1,
     pageNumber: Number(sessionData.pageNumber) || 1,
+    savedDate: cleanDate,
+    sourceDate: cleanDate,
+    isCarriedOver: false,
     updatedAt: new Date().toISOString()
   };
 
-  const group1 = groupKey === 'group1' ? newGroupData : existingNorm.group1;
-  const group2 = groupKey === 'group2' ? newGroupData : existingNorm.group2;
+  // نظام الاستنساخ الذكي: منع فقدان بيانات المجموعة الأخرى عند تعديل إحداهما!
+  let group1, group2;
+  if (groupKey === 'group1') {
+    group1 = newGroupData;
+    if (existingNorm && existingNorm.group2) {
+      group2 = existingNorm.group2;
+    } else if (latestPrior && latestPrior.group2) {
+      group2 = {
+        ...latestPrior.group2,
+        savedDate: latestPrior.group2.savedDate || latestPrior._sourceDate || cleanDate,
+        sourceDate: latestPrior.group2.sourceDate || latestPrior._sourceDate || null,
+        isCarriedOver: (latestPrior.group2.savedDate !== cleanDate),
+        updatedAt: new Date().toISOString()
+      };
+    } else {
+      group2 = null;
+    }
+  } else {
+    group2 = newGroupData;
+    if (existingNorm && existingNorm.group1) {
+      group1 = existingNorm.group1;
+    } else if (latestPrior && latestPrior.group1) {
+      group1 = {
+        ...latestPrior.group1,
+        savedDate: latestPrior.group1.savedDate || latestPrior._sourceDate || cleanDate,
+        sourceDate: latestPrior.group1.sourceDate || latestPrior._sourceDate || null,
+        isCarriedOver: (latestPrior.group1.savedDate !== cleanDate),
+        updatedAt: new Date().toISOString()
+      };
+    } else {
+      group1 = null;
+    }
+  }
 
   sessions[cleanDate] = {
-    ...existingRaw,
+    ...(existingRaw || {}),
     group1,
     group2,
     surahName: (group1 && group1.surahName) || (group2 && group2.surahName) || newGroupData.surahName,
@@ -529,7 +649,23 @@ function saveDailySession(dateStr, sessionData, groupKey = 'group1') {
   };
 
   safeSet(STORAGE_KEYS.SESSIONS, sessions);
-  return normalizeSessionEntry(sessions[cleanDate]);
+  return getDailySession(cleanDate);
+}
+
+// اعتماد سريع لورد إحدى المجموعتين ليوم اليوم الحالي بنقرة واحدة
+function confirmDailyGroupSession(groupKey = 'group1') {
+  const today = getTodayStr();
+  const session = getDailySession(today);
+  if (!session) return null;
+
+  const targetGroup = (groupKey === 'group1') ? session.group1 : session.group2;
+  if (!targetGroup || !targetGroup.surahName) return null;
+
+  return saveDailySession(today, {
+    surahName: targetGroup.surahName,
+    surahNumber: targetGroup.surahNumber,
+    pageNumber: targetGroup.pageNumber
+  }, groupKey);
 }
 
 // -------------------------------------------------------------

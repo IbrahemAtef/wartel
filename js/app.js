@@ -26,12 +26,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const sessionStatusBadgeG1 = document.getElementById('session-status-badge-g1');
   const sessionBtnTextG1 = document.getElementById('session-btn-text-g1');
   const openSessionModalG1Btn = document.getElementById('open-session-modal-g1-btn');
+  const confirmSessionG1Btn = document.getElementById('confirm-session-g1-btn');
 
   const displaySurahNameG2 = document.getElementById('display-surah-name-g2');
   const displayPageNumberG2 = document.getElementById('display-page-number-g2');
   const sessionStatusBadgeG2 = document.getElementById('session-status-badge-g2');
   const sessionBtnTextG2 = document.getElementById('session-btn-text-g2');
   const openSessionModalG2Btn = document.getElementById('open-session-modal-g2-btn');
+  const confirmSessionG2Btn = document.getElementById('confirm-session-g2-btn');
 
   // عناصر الطلاب والبحث وفلترة الدورات
   const studentsListContainer = document.getElementById('students-list-container');
@@ -222,8 +224,75 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // -------------------------------------------------------------
-  // 5. عرض وتحديث مقرر اليوم (Daily Quran Session)
+  // 5. عرض وتحديث مقرر اليوم (Daily Quran Session - Smart Rollover)
   // -------------------------------------------------------------
+  function updateGroupSessionCardUI({
+    groupKey,
+    groupData,
+    displaySurahName,
+    displayPageNumber,
+    sessionStatusBadge,
+    sessionBtnText,
+    openSessionModalBtn,
+    confirmSessionBtn
+  }) {
+    const hasData = !!(groupData && groupData.surahName);
+    const isG1 = (groupKey === 'group1');
+    const groupName = isG1 ? 'المجموعة الأولى' : 'المجموعة الثانية';
+
+    if (!hasData) {
+      if (displaySurahName) displaySurahName.textContent = 'لم يُسجل مقرر اليوم';
+      if (displayPageNumber) displayPageNumber.textContent = '-';
+      if (sessionStatusBadge) {
+        sessionStatusBadge.textContent = 'بانتظار التسجيل';
+        sessionStatusBadge.className = 'session-badge status-empty';
+      }
+      if (sessionBtnText) sessionBtnText.textContent = `إضافة مقرر ${groupName}`;
+      if (openSessionModalBtn) {
+        openSessionModalBtn.classList.add('btn-block');
+      }
+      if (confirmSessionBtn) {
+        confirmSessionBtn.style.display = 'none';
+      }
+      return;
+    }
+
+    // عرض بيانات السورة والصفحة
+    if (displaySurahName) displaySurahName.textContent = `سورة ${groupData.surahName}`;
+    if (displayPageNumber) displayPageNumber.textContent = groupData.pageNumber;
+
+    const isCarried = !!groupData.isCarriedOver;
+
+    if (isCarried) {
+      // حالة الترحيل الذكي من جلسة سابقة
+      const carriedLabel = getSessionCarriedLabel(groupData.sourceDate || groupData.savedDate);
+      if (sessionStatusBadge) {
+        sessionStatusBadge.textContent = carriedLabel;
+        sessionStatusBadge.className = 'session-badge status-carried';
+      }
+      if (sessionBtnText) sessionBtnText.textContent = 'تعديل المقرر';
+      if (openSessionModalBtn) {
+        openSessionModalBtn.classList.remove('btn-block');
+      }
+      if (confirmSessionBtn) {
+        confirmSessionBtn.style.display = 'inline-flex';
+      }
+    } else {
+      // مقرر مسجل رسمياً لليوم الحالي
+      if (sessionStatusBadge) {
+        sessionStatusBadge.textContent = 'مقرر مسجل لليوم ✓';
+        sessionStatusBadge.className = `session-badge ${isG1 ? 'status-today-g1' : 'status-today-g2'}`;
+      }
+      if (sessionBtnText) sessionBtnText.textContent = `تعديل مقرر ${groupName}`;
+      if (openSessionModalBtn) {
+        openSessionModalBtn.classList.add('btn-block');
+      }
+      if (confirmSessionBtn) {
+        confirmSessionBtn.style.display = 'none';
+      }
+    }
+  }
+
   function renderTodaySession() {
     const today = getTodayStr();
     const formattedDate = formatDateArabic(today);
@@ -235,42 +304,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const g2 = session && session.group2;
 
     // 1. تحديث بطاقة المجموعة الأولى (الزمرد)
-    if (g1 && g1.surahName) {
-      if (displaySurahNameG1) displaySurahNameG1.textContent = `سورة ${g1.surahName}`;
-      if (displayPageNumberG1) displayPageNumberG1.textContent = g1.pageNumber;
-      if (sessionStatusBadgeG1) {
-        sessionStatusBadgeG1.textContent = 'مقرر مسجل ✓';
-        sessionStatusBadgeG1.style.background = 'var(--primary-gradient)';
-      }
-      if (sessionBtnTextG1) sessionBtnTextG1.textContent = 'تعديل مقرر المجموعة الأولى';
-    } else {
-      if (displaySurahNameG1) displaySurahNameG1.textContent = 'لم يُسجل مقرر اليوم';
-      if (displayPageNumberG1) displayPageNumberG1.textContent = '-';
-      if (sessionStatusBadgeG1) {
-        sessionStatusBadgeG1.textContent = 'بانتظار التسجيل';
-        sessionStatusBadgeG1.style.background = 'var(--gold-gradient)';
-      }
-      if (sessionBtnTextG1) sessionBtnTextG1.textContent = 'إضافة مقرر المجموعة الأولى';
-    }
+    updateGroupSessionCardUI({
+      groupKey: 'group1',
+      groupData: g1,
+      displaySurahName: displaySurahNameG1,
+      displayPageNumber: displayPageNumberG1,
+      sessionStatusBadge: sessionStatusBadgeG1,
+      sessionBtnText: sessionBtnTextG1,
+      openSessionModalBtn: openSessionModalG1Btn,
+      confirmSessionBtn: confirmSessionG1Btn
+    });
 
     // 2. تحديث بطاقة المجموعة الثانية (النيلي والياقوتي)
-    if (g2 && g2.surahName) {
-      if (displaySurahNameG2) displaySurahNameG2.textContent = `سورة ${g2.surahName}`;
-      if (displayPageNumberG2) displayPageNumberG2.textContent = g2.pageNumber;
-      if (sessionStatusBadgeG2) {
-        sessionStatusBadgeG2.textContent = 'مقرر مسجل ✓';
-        sessionStatusBadgeG2.style.background = 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)';
-      }
-      if (sessionBtnTextG2) sessionBtnTextG2.textContent = 'تعديل مقرر المجموعة الثانية';
-    } else {
-      if (displaySurahNameG2) displaySurahNameG2.textContent = 'لم يُسجل مقرر اليوم';
-      if (displayPageNumberG2) displayPageNumberG2.textContent = '-';
-      if (sessionStatusBadgeG2) {
-        sessionStatusBadgeG2.textContent = 'بانتظار التسجيل';
-        sessionStatusBadgeG2.style.background = 'var(--gold-gradient)';
-      }
-      if (sessionBtnTextG2) sessionBtnTextG2.textContent = 'إضافة مقرر المجموعة الثانية';
-    }
+    updateGroupSessionCardUI({
+      groupKey: 'group2',
+      groupData: g2,
+      displaySurahName: displaySurahNameG2,
+      displayPageNumber: displayPageNumberG2,
+      sessionStatusBadge: sessionStatusBadgeG2,
+      sessionBtnText: sessionBtnTextG2,
+      openSessionModalBtn: openSessionModalG2Btn,
+      confirmSessionBtn: confirmSessionG2Btn
+    });
+  }
+
+  if (confirmSessionG1Btn) {
+    confirmSessionG1Btn.addEventListener('click', () => {
+      confirmDailyGroupSession('group1');
+      renderTodaySession();
+      renderHistoryCards();
+      showToast('تم اعتماد مقرر المجموعة الأولى لليوم بنجاح ✓', 'success');
+    });
+  }
+
+  if (confirmSessionG2Btn) {
+    confirmSessionG2Btn.addEventListener('click', () => {
+      confirmDailyGroupSession('group2');
+      renderTodaySession();
+      renderHistoryCards();
+      showToast('تم اعتماد مقرر المجموعة الثانية لليوم بنجاح ✓', 'success');
+    });
   }
 
   function openSessionModalForGroup(groupKey = 'group1') {
