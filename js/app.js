@@ -441,12 +441,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterCountTamheedi) filterCountTamheedi.textContent = countTamheedi;
     if (filterCountTaheeli) filterCountTaheeli.textContent = countTaheeli;
 
-    // خريطة المراكز العامة للطلاب بناءً على إنجاز الدورات
-    const studentRankMap = new Map();
-    sortedStudents.forEach((student, index) => {
-      studentRankMap.set(student.id, index + 1);
-    });
-
     // 1. فلترة الطلاب حسب الدورة الحالية المختارة
     let courseFiltered = sortedStudents;
     if (currentCourseFilter === 'course_tamheedi_amma') {
@@ -540,23 +534,9 @@ document.addEventListener('DOMContentLoaded', () => {
     filtered.forEach(student => {
       const isAbsent = absentIds.has(student.id);
       const isAttendanceRecorded = !!todayAttendance;
-      const rank = studentRankMap.get(student.id);
-
-      let rankBadgeHtml = '';
-      let cardRankClass = '';
-      if (rank === 1) {
-        cardRankClass = 'card-rank-1';
-        rankBadgeHtml = `<span class="student-rank-badge rank-1" title="المركز الأول في إنجاز الدورات"><span class="rank-medal">🥇</span><span class="rank-title">الأول</span></span>`;
-      } else if (rank === 2) {
-        cardRankClass = 'card-rank-2';
-        rankBadgeHtml = `<span class="student-rank-badge rank-2" title="المركز الثاني في إنجاز الدورات"><span class="rank-medal">🥈</span><span class="rank-title">الثاني</span></span>`;
-      } else if (rank === 3) {
-        cardRankClass = 'card-rank-3';
-        rankBadgeHtml = `<span class="student-rank-badge rank-3" title="المركز الثالث في إنجاز الدورات"><span class="rank-medal">🥉</span><span class="rank-title">الثالث</span></span>`;
-      }
 
       const card = document.createElement('div');
-      card.className = `student-card ${cardRankClass} ${isAttendanceRecorded ? (isAbsent ? 'is-absent' : 'is-present') : ''}`;
+      card.className = `student-card ${isAttendanceRecorded ? (isAbsent ? 'is-absent' : 'is-present') : ''}`;
 
       // الحرف الأول كأيقونة
       const firstChar = student.fullName.trim().charAt(0) || 'ط';
@@ -602,7 +582,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="student-texts">
               <div class="student-name">
                 <span class="student-name-text">${student.fullName}</span>
-                ${rankBadgeHtml}
               </div>
               <div class="student-subinfo">
                 <span>${student.nationalId ? "هوية: " + student.nationalId : "هوية غير مسجلة"}</span>
@@ -1024,20 +1003,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function openStudentProfile(student) {
     currentSelectedStudent = student;
 
-    // حساب مرتبة الطالب بين زملائه في إنجاز الدورات
-    const rank = getStudentAchievementRank(student.id);
-    let rankBadgeHtml = '';
-    if (rank === 1) {
-      rankBadgeHtml = `<span class="student-rank-badge rank-1" style="margin-right: 8px;"><span class="rank-medal">🥇</span><span class="rank-title">المركز الأول</span></span>`;
-    } else if (rank === 2) {
-      rankBadgeHtml = `<span class="student-rank-badge rank-2" style="margin-right: 8px;"><span class="rank-medal">🥈</span><span class="rank-title">المركز الثاني</span></span>`;
-    } else if (rank === 3) {
-      rankBadgeHtml = `<span class="student-rank-badge rank-3" style="margin-right: 8px;"><span class="rank-medal">🥉</span><span class="rank-title">المركز الثالث</span></span>`;
-    }
-
     const nameEl = document.getElementById('profile-student-name');
     if (nameEl) {
-      nameEl.innerHTML = `${student.fullName} ${rankBadgeHtml}`;
+      nameEl.textContent = student.fullName;
     }
     document.getElementById('profile-national-id').textContent = student.nationalId || 'غير مسجل';
     const resEl = document.getElementById('profile-residence');
