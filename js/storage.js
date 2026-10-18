@@ -1031,3 +1031,93 @@ function getExamCardModel() {
 function setExamCardModel(m) {
   localStorage.setItem(STORAGE_KEYS.EXAM_CARD_MODEL, m);
 }
+
+// -------------------------------------------------------------
+// إدارة وتجهيز كشوف وتقارير الطلاب للطباعة وPDF
+// -------------------------------------------------------------
+
+function getCourseDisplayName(courseId) {
+  if (courseId === 'course_taheeli_qad_sami' || courseId === 'course_tamheedi_qad_sami') {
+    return 'الدورة التأهيلية (جزء قد سمع)';
+  }
+  return 'الدورة التمهيدية (جزء عم)';
+}
+
+function getCourseShortDisplayName(courseId) {
+  if (courseId === 'course_taheeli_qad_sami' || courseId === 'course_tamheedi_qad_sami') {
+    return 'التأهيلية (قد سمع)';
+  }
+  return 'التمهيدية (عم)';
+}
+
+function getStudentComprehensiveReportData(student) {
+  if (!student) return null;
+
+  // إنجاز التسميع
+  const ach = getStudentCourseAchievementData(student);
+  const recitationStr = `${ach.completedInCourse}/${ach.totalSurahsInCourse} سورة (${ach.progressPercent}%)`;
+
+  // إحصائيات الحضور والغياب
+  const allDates = getAllAttendanceDates();
+  const totalDays = allDates.length;
+  const absentDays = getStudentAbsenceHistory(student.id).length;
+  const attendedDays = Math.max(0, totalDays - absentDays);
+  const attRate = totalDays > 0 ? Math.round((attendedDays / totalDays) * 100) : 100;
+  const attendanceStr = totalDays > 0 ? `${attRate}% (${attendedDays} حضور / ${absentDays} غياب)` : '100% (حضور كامل)';
+
+  // آخر اختبار
+  const latestExam = getLatestStudentExam(student.id);
+  const examStr = latestExam ? `${latestExam.result} (${latestExam.examName})` : '-';
+
+  // الدورات المجتازة
+  let completedStr = '-';
+  if (Array.isArray(student.completedCourseIds) && student.completedCourseIds.length > 0) {
+    completedStr = student.completedCourseIds
+      .map(cid => getCourseShortDisplayName(cid))
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .join('، ');
+  }
+
+  return {
+    id: student.id,
+    name: student.fullName || '-',
+    nationalId: student.nationalId || '-',
+    phone: student.phone || '-',
+    residence: student.residence || '-',
+    birthDate: student.birthDate ? formatDateDMY(student.birthDate) : '-',
+    birthPlace: student.birthPlace || '-',
+    currentCourse: getCourseDisplayName(student.currentCourseId),
+    currentCourseShort: getCourseShortDisplayName(student.currentCourseId),
+    completedCourses: completedStr,
+    recitationProgress: recitationStr,
+    attendanceRate: attendanceStr,
+    lastExam: examStr,
+    createdAt: student.createdAt ? formatDateDMY(student.createdAt.split('T')[0]) : '-'
+  };
+}
+
+function getFilteredAndSortedStudentsForReport(courseFilter = 'all', sortOption = 'alpha') {
+  let students = getStudents();
+
+  // تصفية حسب الدورة
+  if (courseFilter === 'course_tamheedi_amma') {
+    students = students.filter(s => !s.currentCourseId || s.currentCourseId === 'course_tamheedi_amma');
+  } else if (courseFilter === 'course_taheeli_qad_sami') {
+    students = students.filter(s => s.currentCourseId === 'course_taheeli_qad_sami' || s.currentCourseId === 'course_tamheedi_qad_sami');
+  }
+
+  // ترتيب الطلاب
+  const sorted = [...students];
+  if (sortOption === 'alpha') {
+    sorted.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || '', 'ar'));
+  } else if (sortOption === 'achievement') {
+    sorted.sort((a, b) => compareStudentsByAchievement(a, b));
+  } else if (sortOption === 'date-newest') {
+    sorted.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  } else if (sortOption === 'date-oldest') {
+    sorted.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  }
+
+  return sorted;
+}
+

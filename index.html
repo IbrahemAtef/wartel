@@ -16,8 +16,8 @@
   <link rel="icon" type="image/png" href="icons/favicon.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=34">
-  <link rel="stylesheet" href="css/exam-cards.css?v=34">
+  <link rel="stylesheet" href="css/style.css?v=37">
+  <link rel="stylesheet" href="css/exam-cards.css?v=37">
 </head>
 <body>
 
@@ -145,6 +145,12 @@
         <button type="button" class="action-card-btn" id="open-backup-modal-btn">
           <span class="action-card-icon">💾</span>
           <span class="action-card-title">حفظ ونسخ احتياطي</span>
+        </button>
+
+        <!-- زر كشف وطباعة بيانات الطلاب PDF -->
+        <button type="button" class="action-card-btn" id="open-export-pdf-modal-btn">
+          <span class="action-card-icon">📄</span>
+          <span class="action-card-title">كشف الطلاب (PDF)</span>
         </button>
       </section>
 
@@ -904,13 +910,211 @@
     </div>
   </div>
 
+  <!-- 10. نافذة كشف وبيانات الطلاب PDF (Export Students Report Modal) -->
+  <div class="modal-overlay modal-centered" id="export-pdf-modal" role="dialog" aria-modal="true" aria-labelledby="export-pdf-modal-title">
+    <div class="modal-alert-box export-pdf-modal-box" style="max-width: 560px; text-align: right; align-items: stretch;">
+      <!-- ترويسة النافذة -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 12px;">
+        <h3 class="modal-title" id="export-pdf-modal-title" style="font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+          <span>📄</span>
+          <span>كشف وبيانات الطلاب (PDF)</span>
+        </h3>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="export-pdf-modal" aria-label="إغلاق">✕</button>
+      </div>
+
+      <div class="export-modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 12px 0; max-height: 72vh; overflow-y: auto;">
+        
+        <!-- 1. اختيار الدورة المستهدفة -->
+        <div class="export-form-section">
+          <label class="export-section-label">
+            <span>📚</span>
+            <span>الدورة المستهدفة للكشف</span>
+          </label>
+          <div class="export-course-pills" id="export-course-filter-group" role="radiogroup" aria-label="اختيار الدورة">
+            <button type="button" class="export-course-pill active" data-course="all" role="radio" aria-checked="true">
+              <span class="pill-icon">🌟</span>
+              <span class="pill-title">جميع الطلاب</span>
+              <span class="pill-badge" id="export-badge-count-all">0</span>
+            </button>
+            <button type="button" class="export-course-pill" data-course="course_tamheedi_amma" role="radio" aria-checked="false">
+              <span class="pill-icon">📖</span>
+              <span class="pill-title">التمهيدية (عم)</span>
+              <span class="pill-badge" id="export-badge-count-amma">0</span>
+            </button>
+            <button type="button" class="export-course-pill" data-course="course_taheeli_qad_sami" role="radio" aria-checked="false">
+              <span class="pill-icon">🎓</span>
+              <span class="pill-title">التأهيلية (قد سمع)</span>
+              <span class="pill-badge" id="export-badge-count-qadsami">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. تحديد حقول وبيانات الطالب -->
+        <div class="export-form-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <label class="export-section-label" style="margin-bottom: 0;">
+              <span>☑️</span>
+              <span>الحقول المراد تضمينها في الكشف</span>
+            </label>
+            <!-- أزرار الضبط السريع -->
+            <div class="export-presets-bar">
+              <button type="button" class="export-preset-btn" id="export-preset-all">✨ تحديد الكل</button>
+              <button type="button" class="export-preset-btn" id="export-preset-basic">📋 الأساسية فقط</button>
+              <button type="button" class="export-preset-btn" id="export-preset-clear">🔄 مسح</button>
+            </div>
+          </div>
+
+          <!-- شبكة الحقول القابلة للاختيار -->
+          <div class="export-fields-grid" id="export-fields-container">
+            <!-- اسم الطالب (إجباري) -->
+            <label class="export-field-item locked" title="اسم الطالب إجباري دائماً في الكشف">
+              <input type="checkbox" id="field-name" name="export-field" value="name" checked disabled>
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">
+                <strong>اسم الطالب</strong>
+                <small class="field-badge-required">إجباري</small>
+              </span>
+            </label>
+
+            <!-- رقم الهوية -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-nationalId" name="export-field" value="nationalId" checked>
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">رقم الهوية</span>
+            </label>
+
+            <!-- رقم الهاتف -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-phone" name="export-field" value="phone" checked>
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">رقم الهاتف</span>
+            </label>
+
+            <!-- مكان السكن -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-residence" name="export-field" value="residence" checked>
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">مكان السكن</span>
+            </label>
+
+            <!-- الدورة الحالية -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-currentCourse" name="export-field" value="currentCourse" checked>
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">الدورة الحالية</span>
+            </label>
+
+            <!-- إنجاز التسميع وحفظ السور -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-recitationProgress" name="export-field" value="recitationProgress" checked>
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">إنجاز التسميع</span>
+            </label>
+
+            <!-- إحصائية الحضور والغياب -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-attendanceRate" name="export-field" value="attendanceRate">
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">نسبة الحضور</span>
+            </label>
+
+            <!-- نتيجة آخر اختبار -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-lastExam" name="export-field" value="lastExam">
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">نتيجة الاختبار</span>
+            </label>
+
+            <!-- تاريخ الميلاد -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-birthDate" name="export-field" value="birthDate">
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">تاريخ الميلاد</span>
+            </label>
+
+            <!-- مكان الميلاد -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-birthPlace" name="export-field" value="birthPlace">
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">مكان الميلاد</span>
+            </label>
+
+            <!-- الدورات المجتازة -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-completedCourses" name="export-field" value="completedCourses">
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">الدورات المجتازة</span>
+            </label>
+
+            <!-- تاريخ التسجيل -->
+            <label class="export-field-item">
+              <input type="checkbox" id="field-createdAt" name="export-field" value="createdAt">
+              <span class="field-custom-box">✓</span>
+              <span class="field-label-text">تاريخ التسجيل</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 3. خيارات الترتيب وتوجيه الصفحة -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <!-- ترتيب الطلاب -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="export-sort-select" style="font-size: 0.82rem;">ترتيب الطلاب في الكشف</label>
+            <select id="export-sort-select" class="form-input" style="padding: 7px 10px; font-size: 0.85rem;">
+              <option value="alpha">أبجدياً (أ - ي)</option>
+              <option value="achievement">حسب أعلى إنجاز في التسميع</option>
+              <option value="date-newest">تاريخ التسجيل (الأحدث أولاً)</option>
+              <option value="date-oldest">تاريخ التسجيل (الأقدم أولاً)</option>
+            </select>
+          </div>
+
+          <!-- توجيه صفحة الطباعة -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="export-orientation-select" style="font-size: 0.82rem;">اتجاه الصفحة (PDF)</label>
+            <select id="export-orientation-select" class="form-input" style="padding: 7px 10px; font-size: 0.85rem;">
+              <option value="auto">تلقائي ذكي (مستحسن)</option>
+              <option value="landscape">عرضي (Landscape)</option>
+              <option value="portrait">طولي (Portrait)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 4. شريط الملخص اللحظي للتصدير -->
+        <div class="export-summary-box" id="export-summary-box">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1rem;">📊</span>
+              <span>الملخص: <strong id="export-summary-students-count">0</strong> طالب</span>
+              <span>•</span>
+              <span><strong id="export-summary-columns-count">6</strong> أعمدة</span>
+            </div>
+            <span class="orientation-badge" id="export-suggested-orientation-badge">عرضي</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- أزرار الإجراءات في الذيل -->
+      <div class="modal-footer" style="padding: 12px 0 0; background: none; border-top: 1px solid var(--surface-border-subtle); display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" class="btn btn-primary btn-block" id="start-export-pdf-btn" style="justify-content: center; gap: 8px; font-size: 0.95rem; padding: 11px;">
+          <span>🖨️</span>
+          <span>تجهيز وطباعة / حفظ PDF</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="export-pdf-modal">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- الحاوية المخصصة لطباعة كشف الـ PDF -->
+  <div id="wartel-printable-report" class="wartel-printable-report" aria-hidden="true"></div>
+
   <!-- حاوية إشعارات Toast -->
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- ملفات الجافاسكريبت -->
-  <script src="js/quran-data.js?v=34"></script>
-  <script src="js/storage.js?v=34"></script>
-  <script src="js/app.js?v=34"></script>
-  <script src="js/pwa-register.js?v=34"></script>
+  <script src="js/quran-data.js?v=37"></script>
+  <script src="js/storage.js?v=37"></script>
+  <script src="js/app.js?v=37"></script>
+  <script src="js/pwa-register.js?v=37"></script>
 </body>
 </html>

@@ -1982,6 +1982,336 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedViewMode = getCardViewMode();
   applyCardViewMode(savedViewMode);
 
+  // -------------------------------------------------------------
+  // 14. كشف وبيانات الطلاب وطباعتها وحفظها كـ PDF (Students Report PDF Export)
+  // -------------------------------------------------------------
+  const exportPdfModal = document.getElementById('export-pdf-modal');
+  const openExportPdfBtn = document.getElementById('open-export-pdf-modal-btn');
+  const exportCourseFilterGroup = document.getElementById('export-course-filter-group');
+  const exportFieldsContainer = document.getElementById('export-fields-container');
+  const exportSortSelect = document.getElementById('export-sort-select');
+  const exportOrientationSelect = document.getElementById('export-orientation-select');
+  const startExportPdfBtn = document.getElementById('start-export-pdf-btn');
+  const printableReportContainer = document.getElementById('wartel-printable-report');
+
+  const exportSummaryStudentsCount = document.getElementById('export-summary-students-count');
+  const exportSummaryColumnsCount = document.getElementById('export-summary-columns-count');
+  const exportSuggestedOrientationBadge = document.getElementById('export-suggested-orientation-badge');
+
+  const exportBadgeCountAll = document.getElementById('export-badge-count-all');
+  const exportBadgeCountAmma = document.getElementById('export-badge-count-amma');
+  const exportBadgeCountQadsami = document.getElementById('export-badge-count-qadsami');
+
+  const exportPresetAll = document.getElementById('export-preset-all');
+  const exportPresetBasic = document.getElementById('export-preset-basic');
+  const exportPresetClear = document.getElementById('export-preset-clear');
+
+  let currentExportCourseFilter = 'all';
+
+  // تحديث عدادات الدورات والأعمدة داخل النافذة
+  function updateExportModalCounters() {
+    const students = getStudents();
+    const ammaCount = students.filter(s => !s.currentCourseId || s.currentCourseId === 'course_tamheedi_amma').length;
+    const qadsamiCount = students.filter(s => s.currentCourseId === 'course_taheeli_qad_sami' || s.currentCourseId === 'course_tamheedi_qad_sami').length;
+
+    if (exportBadgeCountAll) exportBadgeCountAll.textContent = students.length;
+    if (exportBadgeCountAmma) exportBadgeCountAmma.textContent = ammaCount;
+    if (exportBadgeCountQadsami) exportBadgeCountQadsami.textContent = qadsamiCount;
+
+    // حساب عدد الطلاب المحددين حالياً
+    let filteredCount = students.length;
+    if (currentExportCourseFilter === 'course_tamheedi_amma') {
+      filteredCount = ammaCount;
+    } else if (currentExportCourseFilter === 'course_taheeli_qad_sami') {
+      filteredCount = qadsamiCount;
+    }
+
+    if (exportSummaryStudentsCount) {
+      exportSummaryStudentsCount.textContent = filteredCount;
+    }
+
+    // حساب عدد الأعمدة المختارة
+    const checkedFields = getSelectedExportFields();
+    const totalColumns = checkedFields.length + 1; // +1 لعمود الترقيم "م"
+    if (exportSummaryColumnsCount) {
+      exportSummaryColumnsCount.textContent = totalColumns;
+    }
+
+    // تحديد الاتجاه المقترح تلقائياً
+    const suggestedOrientation = totalColumns >= 5 ? 'landscape' : 'portrait';
+    const suggestedText = suggestedOrientation === 'landscape' ? 'عرضي (مستحسن)' : 'طولي (مستحسن)';
+    if (exportSuggestedOrientationBadge) {
+      exportSuggestedOrientationBadge.textContent = suggestedText;
+      exportSuggestedOrientationBadge.style.color = (suggestedOrientation === 'landscape') ? 'var(--accent-gold)' : 'var(--primary)';
+    }
+  }
+
+  // الحصول على الحقول المحددة حالياً
+  function getSelectedExportFields() {
+    const checkboxes = exportFieldsContainer ? exportFieldsContainer.querySelectorAll('input[type="checkbox"]:checked') : [];
+    const fields = [];
+    checkboxes.forEach(cb => {
+      fields.push(cb.value);
+    });
+    // التأكد دائماً من وجود اسم الطالب كحقل أول
+    if (!fields.includes('name')) {
+      fields.unshift('name');
+    }
+    return fields;
+  }
+
+  // ضبط أزرار التحديد السريع
+  if (exportPresetAll) {
+    exportPresetAll.addEventListener('click', () => {
+      const checkboxes = exportFieldsContainer.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = true;
+      });
+      updateExportModalCounters();
+    });
+  }
+
+  if (exportPresetBasic) {
+    exportPresetBasic.addEventListener('click', () => {
+      const basicFields = ['name', 'nationalId', 'phone', 'residence', 'currentCourse', 'recitationProgress'];
+      const checkboxes = exportFieldsContainer.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = basicFields.includes(cb.value);
+      });
+      updateExportModalCounters();
+    });
+  }
+
+  if (exportPresetClear) {
+    exportPresetClear.addEventListener('click', () => {
+      const checkboxes = exportFieldsContainer.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        if (cb.value === 'name') {
+          cb.checked = true;
+        } else {
+          cb.checked = false;
+        }
+      });
+      updateExportModalCounters();
+    });
+  }
+
+  // الاستماع لتغيير الحقول في الشبكة
+  if (exportFieldsContainer) {
+    exportFieldsContainer.addEventListener('change', () => {
+      updateExportModalCounters();
+    });
+  }
+
+  // التبديل بين أقراص الدورات
+  if (exportCourseFilterGroup) {
+    const pills = exportCourseFilterGroup.querySelectorAll('.export-course-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => {
+          p.classList.remove('active');
+          p.setAttribute('aria-checked', 'false');
+        });
+        pill.classList.add('active');
+        pill.setAttribute('aria-checked', 'true');
+        currentExportCourseFilter = pill.getAttribute('data-course') || 'all';
+        updateExportModalCounters();
+      });
+    });
+  }
+
+  // فتح نافذة تصدير الكشف
+  if (openExportPdfBtn) {
+    openExportPdfBtn.addEventListener('click', () => {
+      updateExportModalCounters();
+      openModal(exportPdfModal);
+    });
+  }
+
+  // تعريف تفاصيل أعمدة الكشف الرسمية
+  const FIELD_DEFINITIONS = {
+    name: { title: 'اسم الطالب', alignRight: true },
+    nationalId: { title: 'رقم الهوية', alignRight: false },
+    phone: { title: 'رقم الهاتف', alignRight: false },
+    residence: { title: 'مكان السكن', alignRight: true },
+    currentCourse: { title: 'الدورة الحالية', alignRight: false, isBadge: true },
+    recitationProgress: { title: 'إنجاز التسميع', alignRight: false, isProgress: true },
+    attendanceRate: { title: 'نسبة الحضور', alignRight: false },
+    lastExam: { title: 'نتيجة الاختبار', alignRight: false },
+    birthDate: { title: 'تاريخ الميلاد', alignRight: false },
+    birthPlace: { title: 'مكان الميلاد', alignRight: false },
+    completedCourses: { title: 'الدورات المجتازة', alignRight: false },
+    createdAt: { title: 'تاريخ التسجيل', alignRight: false }
+  };
+
+  // توليد وبناء مستند التقرير وتشغيل الطباعة الرسمية
+  function generateAndPrintStudentReport() {
+    const sortVal = exportSortSelect ? exportSortSelect.value : 'alpha';
+    const students = getFilteredAndSortedStudentsForReport(currentExportCourseFilter, sortVal);
+
+    if (!students || students.length === 0) {
+      showToast('لا يوجد طلاب مسجلون في هذه الدورة لتصديرهم ⚠️', 'warning');
+      return;
+    }
+
+    const selectedFields = getSelectedExportFields();
+    if (selectedFields.length === 0) {
+      showToast('يرجى اختيار حقل واحد على الأقل ⚠️', 'warning');
+      return;
+    }
+
+    // تحديد اتجاه الصفحة (Landscape أو Portrait)
+    const totalColumns = selectedFields.length + 1;
+    let orientationVal = exportOrientationSelect ? exportOrientationSelect.value : 'auto';
+    let chosenOrientation = 'landscape';
+    if (orientationVal === 'portrait') {
+      chosenOrientation = 'portrait';
+    } else if (orientationVal === 'landscape') {
+      chosenOrientation = 'landscape';
+    } else {
+      chosenOrientation = totalColumns >= 5 ? 'landscape' : 'portrait';
+    }
+
+    // حقن اتجاه الصفحة ديناميكياً لطباعة المتصفح
+    let styleTag = document.getElementById('dynamic-print-page-style');
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = 'dynamic-print-page-style';
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = `@page { size: ${chosenOrientation}; margin: 10mm 12mm; }`;
+
+    // عنوان الدورة في الترويسة
+    let courseLabel = 'جميع طلاب الحلقة';
+    if (currentExportCourseFilter === 'course_tamheedi_amma') {
+      courseLabel = 'الدورة التمهيدية (جزء عم)';
+    } else if (currentExportCourseFilter === 'course_taheeli_qad_sami') {
+      courseLabel = 'الدورة التأهيلية (جزء قد سمع)';
+    }
+
+    // تاريخ اليوم ووقت الطباعة
+    const todayFormatted = formatDateWithDay(getTodayStr());
+    const nowTime = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+
+    // بناء ترويسة الجدول (Header Columns)
+    let theadCols = '<th style="width: 38px;">م</th>';
+    selectedFields.forEach(fKey => {
+      const def = FIELD_DEFINITIONS[fKey] || { title: fKey };
+      theadCols += `<th>${def.title}</th>`;
+    });
+
+    // بناء صفوف الطلاب (Rows)
+    let tbodyRows = '';
+    students.forEach((student, index) => {
+      const data = getStudentComprehensiveReportData(student);
+      let rowCells = `<td style="font-weight: 800; color: #475569;">${index + 1}</td>`;
+
+      selectedFields.forEach(fKey => {
+        const def = FIELD_DEFINITIONS[fKey] || { alignRight: false };
+        let cellVal = data[fKey] || '-';
+        let cellContent = cellVal;
+
+        if (def.isBadge) {
+          cellContent = `<span class="print-badge print-badge-course">${cellVal}</span>`;
+        } else if (fKey === 'recitationProgress') {
+          cellContent = `<span class="print-badge print-badge-success">${cellVal}</span>`;
+        }
+
+        const alignClass = def.alignRight ? ' class="text-align-right"' : '';
+        rowCells += `<td${alignClass}>${cellContent}</td>`;
+      });
+
+      tbodyRows += `<tr>${rowCells}</tr>`;
+    });
+
+    // القالب الكامل للمستند المطبوع
+    const reportHtml = `
+      <div class="print-document-container">
+        <!-- ترويسة المستند الرسمية -->
+        <div class="print-header">
+          <div class="print-basmalah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+          <div class="print-header-content">
+            <div class="print-brand">
+              <span class="print-brand-icon">📖</span>
+              <div>
+                <h1 class="print-app-title">وَرَتِّلْ</h1>
+                <div class="print-app-subtitle">نظام إدارة ومتابعة حفظ القرآن الكريم</div>
+              </div>
+            </div>
+
+            <div class="print-report-titles">
+              <h2 class="print-report-main-title">كشف وسجل بيانات الطلاب</h2>
+              <span class="print-report-course-badge">🌿 ${courseLabel}</span>
+            </div>
+
+            <div class="print-meta-box">
+              <div class="print-meta-row">
+                <span class="print-meta-label">تاريخ الكشف:</span>
+                <span>${todayFormatted}</span>
+              </div>
+              <div class="print-meta-row">
+                <span class="print-meta-label">إجمالي الطلاب:</span>
+                <span style="font-weight: 800; color: #047857;">${students.length} طالب</span>
+              </div>
+              <div class="print-meta-row">
+                <span class="print-meta-label">وقت الطباعة:</span>
+                <span>${nowTime}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- جدول بيانات الطلاب -->
+        <table class="print-table">
+          <thead>
+            <tr>${theadCols}</tr>
+          </thead>
+          <tbody>
+            ${tbodyRows}
+          </tbody>
+        </table>
+
+        <!-- خانات التوقيع والاعتماد الرسمي -->
+        <div class="print-signatures-row">
+          <div class="print-sig-col">
+            <span class="print-sig-title">معلم الحلقة ومعد الكشف</span>
+            <span class="print-sig-line"></span>
+          </div>
+          <div class="print-sig-col">
+            <span class="print-sig-title">إدارة الحلقة / المجمع القرآني</span>
+            <span class="print-sig-line"></span>
+          </div>
+          <div class="print-sig-col">
+            <span class="print-sig-title">الختم والاعتماد الرسمي</span>
+            <span class="print-sig-line"></span>
+          </div>
+        </div>
+
+        <!-- ذيل المستند -->
+        <div class="print-doc-footer">
+          <span>تم استخراج هذا التقرير تلقائياً عبر تطبيق «وَرَتِّلْ» لمتابعة الحلقات القرآنية</span>
+          <span>صفحة 1 من 1</span>
+        </div>
+      </div>
+    `;
+
+    printableReportContainer.innerHTML = reportHtml;
+
+    // إغلاق النافذة المنبثقة
+    closeModal(exportPdfModal);
+
+    // استدعاء نافذة الطباعة بعد مهلة قصيرة لضمان اكتمال تصيير الـ DOM
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  }
+
+  if (startExportPdfBtn) {
+    startExportPdfBtn.addEventListener('click', () => {
+      generateAndPrintStudentReport();
+    });
+  }
+
   setupDateInputWrappers();
 
   renderTodaySession();
