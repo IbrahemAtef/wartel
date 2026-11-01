@@ -244,6 +244,10 @@ function getStudentActiveCourse(student) {
   return getCourseById(courseId);
 }
 
+function getStudentCourseConfig(student) {
+  return getStudentActiveCourse(student);
+}
+
 function markAmmaAsCompletedForStudent(studentId) {
   const all = getAllRecitations();
   if (!all[studentId]) {
@@ -910,6 +914,109 @@ function deleteStudentExam(studentId, examId) {
   }
   return false;
 }
+
+// -------------------------------------------------------------
+// إدارة الاختبارات الجماعية وقوائم الاختبارات الفريدة
+// -------------------------------------------------------------
+
+function getDistinctExamsList() {
+  const allExams = getAllExams();
+  const examMap = new Map();
+
+  Object.keys(allExams).forEach(studentId => {
+    const exams = Array.isArray(allExams[studentId]) ? allExams[studentId] : [];
+    exams.forEach(exam => {
+      if (!exam || !exam.examName) return;
+      const cleanName = exam.examName.trim();
+      const cleanDate = normalizeToIsoDate(exam.date) || getTodayStr();
+      const key = cleanName + '___' + cleanDate;
+
+      if (!examMap.has(key)) {
+        examMap.set(key, {
+          key: key,
+          examName: cleanName,
+          date: cleanDate,
+          formattedDate: formatDateDMY(cleanDate),
+          studentIds: new Set([studentId])
+        });
+      } else {
+        examMap.get(key).studentIds.add(studentId);
+      }
+    });
+  });
+
+  const list = Array.from(examMap.values()).map(item => ({
+    key: item.key,
+    examName: item.examName,
+    date: item.date,
+    formattedDate: item.formattedDate,
+    studentsCount: item.studentIds.size
+  }));
+
+  return list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || a.examName.localeCompare(b.examName));
+}
+
+function getStudentExamScoreBySession(studentId, examName, date) {
+  const exams = getStudentExams(studentId);
+  const cleanName = (examName || '').trim().toLowerCase();
+  const cleanDate = normalizeToIsoDate(date);
+
+  const found = exams.find(e => {
+    const matchName = (e.examName || '').trim().toLowerCase() === cleanName;
+    const matchDate = !cleanDate || normalizeToIsoDate(e.date) === cleanDate;
+    return matchName && matchDate;
+  });
+
+  return found ? found.result : null;
+}
+
+function saveBatchExams({ examName, date, scores = {}, notes = '' }) {
+  const cleanName = (examName || '').trim();
+  const cleanDate = normalizeToIsoDate(date) || getTodayStr();
+  if (!cleanName) return 0;
+
+  const all = getAllExams();
+  let savedCount = 0;
+
+  Object.entries(scores).forEach(([studentId, scoreVal]) => {
+    if (scoreVal === null || scoreVal === undefined || scoreVal === '') return;
+    const num = Number(scoreVal);
+    if (isNaN(num) || num < 0 || num > 100) return;
+
+    if (!all[studentId]) {
+      all[studentId] = [];
+    }
+
+    const existingIndex = all[studentId].findIndex(e => 
+      (e.examName || '').trim().toLowerCase() === cleanName.toLowerCase() &&
+      (normalizeToIsoDate(e.date) || getTodayStr()) === cleanDate
+    );
+
+    const examEntry = {
+      id: existingIndex >= 0 ? all[studentId][existingIndex].id : ('exam_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+      examName: cleanName,
+      result: String(num),
+      date: cleanDate,
+      notes: (notes || '').trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    if (existingIndex >= 0) {
+      all[studentId][existingIndex] = examEntry;
+    } else {
+      all[studentId].push(examEntry);
+    }
+
+    savedCount++;
+  });
+
+  if (savedCount > 0) {
+    safeSet(STORAGE_KEYS.EXAMS, all);
+  }
+
+  return savedCount;
+}
+
 
 function exportAllDataJSON() {
   const backup = {

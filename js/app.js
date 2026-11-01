@@ -1,3 +1,4 @@
+function getStudentCourseConfig(student) { return typeof getStudentActiveCourse === "function" ? getStudentActiveCourse(student) : null; }
 // ============================================================
 // المنطق التشغيلي للتطبيق (App Controller)
 // ============================================================
@@ -612,13 +613,9 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div class="student-card-actions-row">
-          <button type="button" class="btn-card-recite" title="تسجيل تسميع سورة من جزء عم">
+          <button type="button" class="btn-card-recite btn-block" title="تسجيل تسميع سورة">
             <span>📖</span>
             <span>تسجيل التسميع</span>
-          </button>
-          <button type="button" class="btn-card-exam" title="تسجيل تقديم اختبار للطالب">
-            <span>📝</span>
-            <span>تسجيل اختبار</span>
           </button>
         </div>
       `;
@@ -637,14 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // زر تسجيل الاختبار من البطاقة مباشرة
-      const examBtn = card.querySelector('.btn-card-exam');
-      if (examBtn) {
-        examBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openExamModal(student);
-        });
-      }
+      // تم نقل تسجيل الاختبار إلى زر التسجيل الجماعي الجديد
 
       // زر الحذف من البطاقة مباشرة
       const delBtn = card.querySelector('.btn-card-delete');
@@ -1072,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exams.length === 0) {
       container.innerHTML = `
         <div class="exams-empty-state">
-          لم يتم تسجيل أي اختبارات سابقة لهذا الطالب حتى الآن. يمكنك تسجيل اختبار جديد عبر زر <strong>➕ تسجيل اختبار جديد</strong> بالأعلى.
+          لم يتم تسجيل أي اختبارات سابقة لهذا الطالب حتى الآن.
         </div>
       `;
       return;
@@ -1115,103 +1105,304 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.querySelector(".btn-exam-delete-corner").addEventListener("click", (e) => {
         e.stopPropagation();
-        if (window.confirm(`هل أنت متأكد من حذف نتيجة اختبار "${exam.examName}"؟`)) {
-          deleteStudentExam(student.id, exam.id);
-          renderProfileExams(student);
-          renderStudentsList();
-          showToast("تم حذف الاختبار بنجاح", "success");
-        }
+        pendingDeleteExam = {
+          studentId: student.id,
+          examId: exam.id,
+          examName: exam.examName,
+          studentName: student.fullName
+        };
+        if (deleteExamNameHighlight) deleteExamNameHighlight.textContent = `"${exam.examName}"`;
+        if (deleteExamStudentHighlight) deleteExamStudentHighlight.textContent = `"${student.fullName}"`;
+        openModal(deleteExamConfirmModal);
       });
 
       container.appendChild(card);
     });
   }
 
-  const profileAddExamBtn = document.getElementById('profile-add-exam-btn');
-  if (profileAddExamBtn) {
-    profileAddExamBtn.addEventListener('click', () => {
-      if (currentSelectedStudent) {
-        openExamModal(currentSelectedStudent);
+  // نافذة تأكيد حذف الاختبار المنبثقة
+  const deleteExamConfirmModal = document.getElementById('delete-exam-confirm-modal');
+  const deleteExamNameHighlight = document.getElementById('delete-exam-name-highlight');
+  const deleteExamStudentHighlight = document.getElementById('delete-exam-student-highlight');
+  const confirmDeleteExamActionBtn = document.getElementById('confirm-delete-exam-action-btn');
+  let pendingDeleteExam = null;
+
+  if (confirmDeleteExamActionBtn) {
+    confirmDeleteExamActionBtn.addEventListener('click', () => {
+      if (!pendingDeleteExam) return;
+      deleteStudentExam(pendingDeleteExam.studentId, pendingDeleteExam.examId);
+      closeModal(deleteExamConfirmModal);
+      if (currentSelectedStudent && currentSelectedStudent.id === pendingDeleteExam.studentId) {
+        renderProfileExams(currentSelectedStudent);
       }
+      renderStudentsList();
+      showToast('تم حذف نتيجة الاختبار بنجاح 🗑️', 'success');
+      pendingDeleteExam = null;
     });
   }
 
   // -------------------------------------------------------------
-  // نافذة تسجيل اختبار لطالب (Exam Modal Controller)
+  // نافذة تسجيل اختبار جديد للطلاب (Batch Exam Modal Controller - UI/UX Pro Max)
   // -------------------------------------------------------------
-  let currentExamStudent = null;
-  const examModal = document.getElementById('exam-modal');
-  const examStudentName = document.getElementById('exam-student-name');
-  const examNameInput = document.getElementById('exam-name-input');
-  const examResultInput = document.getElementById('exam-result-input');
-  const examDateInput = document.getElementById('exam-date-input');
-  const examNotesInput = document.getElementById('exam-notes-input');
-  const examForm = document.getElementById('exam-form');
+  const batchExamModal = document.getElementById('batch-exam-modal');
+  const openBatchExamModalBtn = document.getElementById('open-batch-exam-modal-btn');
+  const batchExamForm = document.getElementById('batch-exam-form');
+  const batchExamNameInput = document.getElementById('batch-exam-name-input');
+  const batchExamTodayDateDisplay = document.getElementById('batch-exam-today-date-display');
+  const batchStudentSearchInput = document.getElementById('batch-student-search-input');
+  const batchExamStudentsContainer = document.getElementById('batch-exam-students-container');
+  const batchScoredCountBadge = document.getElementById('batch-scored-count-badge');
+  const saveBatchBtnText = document.getElementById('save-batch-btn-text');
 
-  function openExamModal(student) {
-    currentExamStudent = student;
-    examStudentName.textContent = student.fullName;
-    examNameInput.value = '';
-    examResultInput.value = '';
-    examDateInput.value = getTodayDMY();
-    examNotesInput.value = '';
+  let currentBatchFilter = 'all';
+  let batchExamScores = {}; // studentId -> numeric score string
 
-    document.querySelectorAll('#exam-modal .form-error-msg').forEach(el => el.classList.remove('visible'));
-
-    openModal(examModal);
+  function getGradeInfo(score) {
+    if (score === '' || score === null || score === undefined) return null;
+    const num = Number(score);
+    if (isNaN(num)) return null;
+    if (num >= 95) return { label: 'ممتاز مرتفع 🌟', cls: 'grade-excellent' };
+    if (num >= 90) return { label: 'ممتاز ✨', cls: 'grade-excellent' };
+    if (num >= 80) return { label: 'جيد جداً 👍', cls: 'grade-very-good' };
+    if (num >= 70) return { label: 'جيد 🌿', cls: 'grade-good' };
+    if (num >= 60) return { label: 'مقبول ⚠️', cls: 'grade-acceptable' };
+    return { label: 'يحتاج متابعة 🔄', cls: 'grade-needs-work' };
   }
 
-  // أزرار الاقتراحات السريعة لاسم الاختبار
-  document.querySelectorAll('#exam-quick-tags .quick-tag-btn').forEach(btn => {
+  function updateBatchScoredBadge() {
+    const students = getStudents();
+    const scoredCount = Object.values(batchExamScores).filter(val => val !== '' && val !== null && val !== undefined && !isNaN(Number(val))).length;
+    if (batchScoredCountBadge) {
+      batchScoredCountBadge.textContent = `${scoredCount} / ${students.length}`;
+    }
+    if (saveBatchBtnText) {
+      saveBatchBtnText.textContent = `حفظ نتائج الاختبار (${scoredCount} طلاب)`;
+    }
+  }
+
+  function renderBatchExamStudents() {
+    if (!batchExamStudentsContainer) return;
+    const allStudents = getStudents();
+
+    // 1. حساب أعداد الأقراص
+    const countAll = allStudents.length;
+    const countTamheedi = allStudents.filter(s => !s.currentCourseId || s.currentCourseId === 'course_tamheedi_amma').length;
+    const countTaheeli = allStudents.filter(s => s.currentCourseId === 'course_taheeli_qad_sami' || s.currentCourseId === 'course_tamheedi_qad_sami').length;
+
+    const elCountAll = document.getElementById('batch-count-all');
+    const elCountTamheedi = document.getElementById('batch-count-tamheedi');
+    const elCountTaheeli = document.getElementById('batch-count-taheeli');
+    if (elCountAll) elCountAll.textContent = countAll;
+    if (elCountTamheedi) elCountTamheedi.textContent = countTamheedi;
+    if (elCountTaheeli) elCountTaheeli.textContent = countTaheeli;
+
+    // 2. تصفية الطلاب حسب الدورة
+    let filtered = allStudents;
+    if (currentBatchFilter === 'course_tamheedi_amma') {
+      filtered = filtered.filter(s => !s.currentCourseId || s.currentCourseId === 'course_tamheedi_amma');
+    } else if (currentBatchFilter === 'course_taheeli_qad_sami') {
+      filtered = filtered.filter(s => s.currentCourseId === 'course_taheeli_qad_sami' || s.currentCourseId === 'course_tamheedi_qad_sami');
+    }
+
+    // 3. تصفية بنص البحث بالاسم
+    const query = (batchStudentSearchInput ? batchStudentSearchInput.value : '').trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter(s => (s.fullName || '').toLowerCase().includes(query));
+    }
+
+    batchExamStudentsContainer.innerHTML = '';
+
+    if (filtered.length === 0) {
+      batchExamStudentsContainer.innerHTML = `
+        <div class="batch-exam-empty-placeholder">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">لا يوجد طلاب يطابقون خيارات البحث</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">جرب تغيير نص البحث أو اختيار دورة أخرى.</div>
+        </div>
+      `;
+      updateBatchScoredBadge();
+      return;
+    }
+
+    filtered.forEach((student, index) => {
+      const existingScore = batchExamScores[student.id] !== undefined ? batchExamScores[student.id] : '';
+
+      const row = document.createElement('div');
+      row.className = `batch-exam-row ${existingScore !== '' ? 'has-score' : ''}`;
+      row.dataset.studentId = student.id;
+
+      row.innerHTML = `
+        <div class="batch-row-num">${index + 1}</div>
+        <div class="batch-row-name">${student.fullName}</div>
+        <div class="batch-row-input-box">
+          <input 
+            type="number" 
+            class="batch-score-input" 
+            data-student-id="${student.id}" 
+            placeholder="-" 
+            min="0" 
+            max="100" 
+            step="1"
+            value="${existingScore}"
+            autocomplete="off"
+            aria-label="درجة الطالب ${student.fullName}"
+          >
+        </div>
+      `;
+
+      const input = row.querySelector('.batch-score-input');
+
+      input.addEventListener('input', () => {
+        let val = input.value.trim();
+        if (val !== '') {
+          let num = Number(val);
+          if (num > 100) {
+            num = 100;
+            input.value = '100';
+          } else if (num < 0) {
+            num = 0;
+            input.value = '0';
+          }
+          batchExamScores[student.id] = String(num);
+          row.classList.add('has-score');
+        } else {
+          delete batchExamScores[student.id];
+          row.classList.remove('has-score');
+        }
+
+        updateBatchScoredBadge();
+      });
+
+      // التنقل السهل بلوحة المفاتيح: Enter أو Down للأسفل، Up للأعلى
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const allInputs = Array.from(batchExamStudentsContainer.querySelectorAll('.batch-score-input'));
+          const curIdx = allInputs.indexOf(input);
+          if (curIdx >= 0 && curIdx < allInputs.length - 1) {
+            allInputs[curIdx + 1].focus();
+            allInputs[curIdx + 1].select();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const allInputs = Array.from(batchExamStudentsContainer.querySelectorAll('.batch-score-input'));
+          const curIdx = allInputs.indexOf(input);
+          if (curIdx > 0) {
+            allInputs[curIdx - 1].focus();
+            allInputs[curIdx - 1].select();
+          }
+        }
+      });
+
+      batchExamStudentsContainer.appendChild(row);
+    });
+
+    updateBatchScoredBadge();
+  }
+
+  function openBatchExamModal() {
+    batchExamScores = {};
+    if (batchExamNameInput) batchExamNameInput.value = '';
+    if (batchExamTodayDateDisplay) batchExamTodayDateDisplay.textContent = formatDateDMY(getTodayStr());
+    if (batchStudentSearchInput) batchStudentSearchInput.value = '';
+    currentBatchFilter = 'all';
+
+    document.querySelectorAll('#batch-exam-modal .form-error-msg').forEach(el => el.classList.remove('visible'));
+
+    // ضبط أزرار الفلترة
+    const filterPills = document.querySelectorAll('#batch-exam-modal .batch-filter-pill');
+    filterPills.forEach(p => {
+      p.classList.toggle('active', p.getAttribute('data-filter') === 'all');
+    });
+
+    renderBatchExamStudents();
+    openModal(batchExamModal);
+
+    setTimeout(() => {
+      if (batchExamNameInput) batchExamNameInput.focus();
+    }, 150);
+  }
+
+  // ربط أزرار الاقتراحات السريعة لاسم الاختبار
+  document.querySelectorAll('#batch-exam-quick-tags .quick-tag-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      examNameInput.value = btn.dataset.tag;
-      examResultInput.focus();
+      if (batchExamNameInput) {
+        batchExamNameInput.value = btn.dataset.tag;
+      }
+      const firstInput = batchExamStudentsContainer.querySelector('.batch-score-input');
+      if (firstInput) {
+        firstInput.focus();
+      }
     });
   });
 
-  if (examForm) {
-    examForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (!currentExamStudent) return;
+  // ربط أزرار تصفية الدورات داخل المودال
+  document.querySelectorAll('#batch-exam-modal .batch-filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('#batch-exam-modal .batch-filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentBatchFilter = pill.getAttribute('data-filter') || 'all';
+      renderBatchExamStudents();
+    });
+  });
 
-      document.querySelectorAll('#exam-modal .form-error-msg').forEach(el => el.classList.remove('visible'));
-
-      const examName = examNameInput.value.trim();
-      const result = examResultInput.value.trim();
-      const date = normalizeToIsoDate(examDateInput.value) || getTodayStr();
-      const notes = examNotesInput.value.trim();
-
-      let hasError = false;
-      if (!examName) {
-        document.getElementById('exam-name-error').classList.add('visible');
-        hasError = true;
-      }
-      if (!result) {
-        document.getElementById('exam-result-error').classList.add('visible');
-        hasError = true;
-      }
-
-      if (hasError) return;
-
-      saveStudentExam(currentExamStudent.id, {
-        examName,
-        result,
-        date,
-        notes
-      });
-
-      closeModal(examModal);
-      renderStudentsList();
-
-      if (profileModal.classList.contains('active') && currentSelectedStudent && currentSelectedStudent.id === currentExamStudent.id) {
-        renderProfileExams(currentSelectedStudent);
-      }
-
-      showToast(`تم تسجيل اختبار "${examName}" للطالب بنجاح 🎓`, 'success');
+  // ربط حقل البحث بالاسم داخل المودال
+  if (batchStudentSearchInput) {
+    batchStudentSearchInput.addEventListener('input', () => {
+      renderBatchExamStudents();
     });
   }
 
-  // -------------------------------------------------------------
+  // ربط زر فتح المودال في الإجراءات السريعة
+  if (openBatchExamModalBtn) {
+    openBatchExamModalBtn.addEventListener('click', openBatchExamModal);
+  }
+
+
+
+  // إرسال وحفظ درجات الاختبار الجماعي
+  if (batchExamForm) {
+    batchExamForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('#batch-exam-modal .form-error-msg').forEach(el => el.classList.remove('visible'));
+
+      const examName = (batchExamNameInput.value || '').trim();
+      const date = getTodayStr(); // يُسجل تلقائياً بتاريخ اليوم عند الضغط على زر الحفظ
+
+      if (!examName) {
+        const err = document.getElementById('batch-exam-name-error');
+        if (err) err.classList.add('visible');
+        if (batchExamNameInput) batchExamNameInput.focus();
+        return;
+      }
+
+      const scoredEntries = Object.entries(batchExamScores).filter(([_, scoreVal]) => {
+        return scoreVal !== '' && scoreVal !== null && scoreVal !== undefined && !isNaN(Number(scoreVal));
+      });
+
+      if (scoredEntries.length === 0) {
+        showToast('يرجى إدخال نتيجة اختبار لطالب واحد على الأقل ⚠️', 'warning');
+        const firstInput = batchExamStudentsContainer.querySelector('.batch-score-input');
+        if (firstInput) firstInput.focus();
+        return;
+      }
+
+      const savedCount = saveBatchExams({
+        examName,
+        date,
+        scores: batchExamScores
+      });
+
+      closeModal(batchExamModal);
+      renderStudentsList();
+
+      if (profileModal.classList.contains('active') && currentSelectedStudent) {
+        renderProfileExams(currentSelectedStudent);
+      }
+
+      showToast(`تم حفظ نتائج اختبار "${examName}" لعدد (${savedCount}) طالب بنجاح 🎓`, 'success');
+    });
+  }
   // -------------------------------------------------------------
   // نافذة تسجيل تسميع سورة (Recitation Modal)
   // -------------------------------------------------------------
@@ -2120,10 +2311,73 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // إدارة خيارات أعمدة الاختبارات في الكشف المطبوع
+  const exportExamsContainer = document.getElementById('export-exams-container');
+  const exportExamsPresetAll = document.getElementById('export-exams-preset-all');
+  const exportExamsPresetNone = document.getElementById('export-exams-preset-none');
+
+  function renderExportExamsOptions() {
+    if (!exportExamsContainer) return;
+    const distinctExams = getDistinctExamsList();
+
+    if (distinctExams.length === 0) {
+      exportExamsContainer.innerHTML = `
+        <div class="export-no-exams-msg">
+          لم يتم تسجيل أي اختبارات حتى الآن. عند تسجيل اختبارات جديدة، ستظهر هنا كأعمدة قابلة للاختيار والتضمين في الكشف المطبوع.
+        </div>
+      `;
+      return;
+    }
+
+    exportExamsContainer.innerHTML = '';
+    distinctExams.forEach(exam => {
+      const label = document.createElement('label');
+      label.className = 'export-exam-checkbox-item';
+      label.innerHTML = `
+        <input type="checkbox" name="export-exam-col" value="${exam.key}" checked>
+        <span class="field-custom-box">✓</span>
+        <div class="export-exam-checkbox-texts">
+          <span class="export-exam-checkbox-title">${exam.examName}</span>
+          <span class="export-exam-checkbox-meta">📅 ${exam.formattedDate} • (${exam.studentsCount} طلاب)</span>
+        </div>
+      `;
+      exportExamsContainer.appendChild(label);
+    });
+  }
+
+  function getSelectedExportExams() {
+    if (!exportExamsContainer) return [];
+    const checked = exportExamsContainer.querySelectorAll('input[name="export-exam-col"]:checked');
+    const distinct = getDistinctExamsList();
+    const distinctMap = new Map(distinct.map(e => [e.key, e]));
+    const result = [];
+    checked.forEach(cb => {
+      if (distinctMap.has(cb.value)) {
+        result.push(distinctMap.get(cb.value));
+      }
+    });
+    return result;
+  }
+
+  if (exportExamsPresetAll) {
+    exportExamsPresetAll.addEventListener('click', () => {
+      if (!exportExamsContainer) return;
+      exportExamsContainer.querySelectorAll('input[name="export-exam-col"]').forEach(cb => cb.checked = true);
+    });
+  }
+
+  if (exportExamsPresetNone) {
+    exportExamsPresetNone.addEventListener('click', () => {
+      if (!exportExamsContainer) return;
+      exportExamsContainer.querySelectorAll('input[name="export-exam-col"]').forEach(cb => cb.checked = false);
+    });
+  }
+
   // فتح نافذة تصدير الكشف
   if (openExportPdfBtn) {
     openExportPdfBtn.addEventListener('click', () => {
       updateExportModalCounters();
+      renderExportExamsOptions();
       openModal(exportPdfModal);
     });
   }
@@ -2160,8 +2414,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // تحديد اتجاه الصفحة (Landscape أو Portrait)
-    const totalColumns = selectedFields.length + 1;
+    // استرجاع أعمدة الاختبارات المحددة للطباعة
+    const selectedExams = getSelectedExportExams();
+
+    // تحديد اتجاه الصفحة (Landscape أو Portrait) مع مراعاة أعمدة الاختبارات
+    const totalColumns = selectedFields.length + selectedExams.length + 1;
     let orientationVal = exportOrientationSelect ? exportOrientationSelect.value : 'auto';
     let chosenOrientation = 'landscape';
     if (orientationVal === 'portrait') {
@@ -2179,7 +2436,7 @@ document.addEventListener('DOMContentLoaded', () => {
       styleTag.id = 'dynamic-print-page-style';
       document.head.appendChild(styleTag);
     }
-    styleTag.textContent = `@page { size: ${chosenOrientation}; margin: 10mm 12mm; }`;
+    styleTag.textContent = `@page { size: ${chosenOrientation}; margin: 8mm 10mm; }`;
 
     // عنوان الدورة في الترويسة
     let courseLabel = 'جميع طلاب الحلقة';
@@ -2194,10 +2451,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const nowTime = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
 
     // بناء ترويسة الجدول (Header Columns)
-    let theadCols = '<th style="width: 38px;">م</th>';
+    let theadCols = '<th style="width: 34px;">م</th>';
     selectedFields.forEach(fKey => {
       const def = FIELD_DEFINITIONS[fKey] || { title: fKey };
       theadCols += `<th>${def.title}</th>`;
+    });
+
+    // إضافة أعمدة الاختبارات المحددة إلى ترويسة الجدول
+    selectedExams.forEach(exam => {
+      theadCols += `
+        <th class="print-th-exam">
+          <div class="print-th-exam-name">${exam.examName}</div>
+          <div class="print-th-exam-date">📅 ${exam.formattedDate}</div>
+        </th>
+      `;
     });
 
     // بناء صفوف الطلاب (Rows)
@@ -2219,6 +2486,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const alignClass = def.alignRight ? ' class="text-align-right"' : '';
         rowCells += `<td${alignClass}>${cellContent}</td>`;
+      });
+
+      // إضافة خلايا درجات الاختبارات لهذا الطالب
+      selectedExams.forEach(exam => {
+        const score = getStudentExamScoreBySession(student.id, exam.examName, exam.date);
+        if (score !== null && score !== undefined && score !== '') {
+          const numScore = Number(score);
+          const scoreClass = numScore >= 90 ? 'score-excellent' : (numScore >= 75 ? 'score-good' : 'score-regular');
+          rowCells += `
+            <td class="print-td-exam">
+              <span class="print-badge print-badge-score ${scoreClass}">${score}</span>
+            </td>
+          `;
+        } else {
+          rowCells += `<td class="print-td-exam print-td-empty">-</td>`;
+        }
       });
 
       tbodyRows += `<tr>${rowCells}</tr>`;

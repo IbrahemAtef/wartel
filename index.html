@@ -16,8 +16,8 @@
   <link rel="icon" type="image/png" href="icons/favicon.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=37">
-  <link rel="stylesheet" href="css/exam-cards.css?v=37">
+  <link rel="stylesheet" href="css/style.css?v=42">
+  <link rel="stylesheet" href="css/exam-cards.css?v=42">
 </head>
 <body>
 
@@ -136,7 +136,13 @@
         </button>
 
         <!-- زر إضافة طالب جديد -->
-        <button type="button" class="action-card-btn" id="open-add-student-btn">
+                <!-- زر تسجيل اختبار جديد للطلاب (جماعي) -->
+        <button type="button" class="action-card-btn featured-exam-action" id="open-batch-exam-modal-btn">
+          <span class="action-card-icon">📝</span>
+          <span class="action-card-title">تسجيل اختبار جديد</span>
+        </button>
+
+<button type="button" class="action-card-btn" id="open-add-student-btn">
           <span class="action-card-icon">➕</span>
           <span class="action-card-title">إضافة طالب جديد</span>
         </button>
@@ -556,10 +562,6 @@
         <div class="profile-history-section" id="profile-exams-section" style="margin-top: 14px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
             <div class="profile-history-title" id="profile-exams-title">🎓 سجل الاختبارات (0):</div>
-            <button type="button" class="btn btn-secondary" id="profile-add-exam-btn" style="min-height: 32px; padding: 4px 10px; font-size: 0.78rem;">
-              <span>➕</span>
-              <span>تسجيل اختبار جديد</span>
-            </button>
           </div>
           <div class="profile-exams-list" id="profile-exams-list-container">
             <!-- يتم تعبئة بطاقات الاختبارات ديناميكياً -->
@@ -718,6 +720,36 @@
     </div>
   </div>
 
+  <!-- نافذة تأكيد حذف نتيجة اختبار لطالب (Centered Alert Modal) -->
+  <div class="modal-overlay modal-centered" id="delete-exam-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-exam-dialog-title">
+    <div class="modal-alert-box">
+      <div class="delete-icon-badge">
+        <span class="delete-icon-symbol">⚠️</span>
+      </div>
+
+      <h3 class="delete-dialog-title" id="delete-exam-dialog-title">تأكيد حذف الاختبار</h3>
+      
+      <p class="delete-dialog-desc">
+        هل أنت متأكد من رغبتك في حذف نتيجة <span id="delete-exam-name-highlight" class="delete-student-highlight"></span> للطالب <span id="delete-exam-student-highlight" class="delete-student-highlight"></span> نهائياً؟
+      </p>
+
+      <div class="delete-alert-warning">
+        <span style="font-size: 1.1rem;">⚠️</span>
+        <span>لا يمكن التراجع عن هذا الإجراء بعد الحذف.</span>
+      </div>
+
+      <div class="delete-dialog-actions">
+        <button type="button" class="btn btn-danger-solid btn-block" id="confirm-delete-exam-action-btn">
+          <span>🗑️</span>
+          <span>نعم، حذف الاختبار</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="delete-exam-confirm-modal">
+          <span>تراجع وإلغاء</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 6. نافذة تأكيد حذف سجل حضور يوم (Centered Alert Modal) -->
   <div class="modal-overlay modal-centered" id="delete-attendance-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-attendance-dialog-title">
     <div class="modal-alert-box">
@@ -839,32 +871,36 @@
     </div>
   </div>
 
-  <!-- 9. نافذة تسجيل اختبار لطالب (Exam Modal) -->
-  <div class="modal-overlay modal-centered" id="exam-modal" role="dialog" aria-modal="true" aria-labelledby="exam-modal-title">
-    <div class="modal-alert-box" style="max-width: 440px; text-align: right; align-items: stretch;">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border-subtle); padding-bottom: 12px;">
-        <h3 class="modal-title" id="exam-modal-title" style="font-size: 1.15rem;">
-          <span>📝</span>
-          <span>تسجيل اختبار لطالب</span>
-        </h3>
-        <button type="button" class="icon-btn close-modal-btn" data-modal="exam-modal" aria-label="إغلاق">✕</button>
+  <!-- 9. نافذة تسجيل اختبار جديد للطلاب (Batch Exam Modal - UI/UX Pro Max) -->
+  <div class="modal-overlay modal-centered" id="batch-exam-modal" role="dialog" aria-modal="true" aria-labelledby="batch-exam-modal-title">
+    <div class="modal-alert-box batch-exam-modal-box">
+      <!-- ترويسة المودال -->
+      <div class="batch-exam-header">
+        <div class="batch-exam-header-title">
+          <div class="batch-exam-icon-badge">📝</div>
+          <div>
+            <h3 class="modal-title" id="batch-exam-modal-title">تسجيل اختبار جديد للطلاب</h3>
+            <div class="modal-subtitle">رصد درجات جميع الطلاب للاختبار دفعة واحدة</div>
+          </div>
+        </div>
+        <button type="button" class="icon-btn close-modal-btn" data-modal="batch-exam-modal" aria-label="إغلاق">✕</button>
       </div>
 
-      <form id="exam-form" novalidate>
-        <div style="display: flex; flex-direction: column; gap: 12px; padding: 12px 0;">
-          <!-- اسم الطالب -->
-          <div style="background: var(--bg-primary); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--surface-border-subtle);">
-            <span style="font-size: 0.75rem; color: var(--text-tertiary);">الطالب:</span>
-            <div id="exam-student-name" style="font-size: 1.05rem; font-weight: 800; color: var(--primary);"></div>
-          </div>
-
-          <!-- اقتراحات سريعة لاسم الاختبار -->
-          <div>
-            <label class="form-label" style="margin-bottom: 6px;">
-              <span>اسم الاختبار *</span>
-              <span class="hint">اقتراحات سريعة:</span>
-            </label>
-            <div class="exam-quick-tags" id="exam-quick-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+      <form id="batch-exam-form" novalidate>
+        <div class="batch-exam-body">
+          <!-- تفاصيل الاختبار الأساسية -->
+          <div class="batch-exam-meta-box">
+            <div class="batch-exam-meta-header">
+              <label class="form-label" for="batch-exam-name-input" style="margin-bottom: 0;">
+                <span>اسم الاختبار *</span>
+                <span class="hint">اقتراحات سريعة:</span>
+              </label>
+              <div class="batch-exam-auto-date-badge" id="batch-exam-auto-date-badge" title="يتم رصد التاريخ تلقائياً بتاريخ اليوم">
+                <span>📅 تاريخ الرصد:</span>
+                <strong id="batch-exam-today-date-display">اليوم</strong>
+              </div>
+            </div>
+            <div class="exam-quick-tags" id="batch-exam-quick-tags">
               <button type="button" class="quick-tag-btn" data-tag="اختبار جزء عم">جزء عم</button>
               <button type="button" class="quick-tag-btn" data-tag="اختبار جزء تبارك">جزء تبارك</button>
               <button type="button" class="quick-tag-btn" data-tag="اختبار 3 أجزاء">3 أجزاء</button>
@@ -872,39 +908,54 @@
               <button type="button" class="quick-tag-btn" data-tag="اختبار سورة البقرة">سورة البقرة</button>
               <button type="button" class="quick-tag-btn" data-tag="اختبار شهري">اختبار شهري</button>
             </div>
-            <input type="text" id="exam-name-input" class="form-input" placeholder="اكتب اسم الاختبار، مثال: اختبار جزء عم..." required autocomplete="off">
-            <div class="form-error-msg" id="exam-name-error">يرجى كتابة اسم الاختبار أو اختياره من المقترحات.</div>
+            <input type="text" id="batch-exam-name-input" class="form-input" placeholder="اكتب اسم الاختبار، مثال: اختبار جزء عم..." required autocomplete="off">
+            <div class="form-error-msg" id="batch-exam-name-error">يرجى كتابة اسم الاختبار أو اختياره من المقترحات.</div>
           </div>
 
-          <!-- النتيجة / التقدير -->
-          <div class="form-group">
-            <label class="form-label" for="exam-result-input">
-              <span>النتيجة أو التقدير *</span>
-              <span class="hint">نص حر</span>
-            </label>
-            <input type="text" id="exam-result-input" class="form-input" placeholder="مثال: ممتاز (98 من 100) أو مجتاز" required autocomplete="off">
-            <div class="form-error-msg" id="exam-result-error">يرجى كتابة النتيجة أو التقدير.</div>
+          <!-- شريط الفلترة والبحث وإحصائية الرصد السريع -->
+          <div class="batch-exam-toolbar">
+            <div class="batch-exam-filters">
+              <button type="button" class="batch-filter-pill active" data-filter="all">🌟 الكل (<span id="batch-count-all">0</span>)</button>
+              <button type="button" class="batch-filter-pill" data-filter="course_tamheedi_amma">📖 التمهيدية (<span id="batch-count-tamheedi">0</span>)</button>
+              <button type="button" class="batch-filter-pill" data-filter="course_taheeli_qad_sami">🎓 التأهيلية (<span id="batch-count-taheeli">0</span>)</button>
+            </div>
+
+            <div class="batch-exam-search-box">
+              <span class="batch-search-icon">🔍</span>
+              <input type="text" id="batch-student-search-input" class="batch-search-input" placeholder="بحث باسم الطالب..." autocomplete="off">
+            </div>
+
+            <div class="batch-exam-progress-chip">
+              <span>📊 تم رصد:</span>
+              <strong id="batch-scored-count-badge">0 / 0</strong>
+            </div>
           </div>
 
-          <!-- تاريخ الاختبار -->
-          <div class="form-group">
-            <label class="form-label" for="exam-date-input">تاريخ الاختبار</label>
-            <input type="date" id="exam-date-input" class="form-input" required>
+          <!-- تنبيه إرشادي لطيف -->
+          <div class="batch-exam-tips-bar">
+            <span>💡 <strong>إرشاد:</strong> أدخل الدرجة من (0 إلى 100) بجانب كل طالب اختبر، واترك الحقل فارغاً لمن لم يختبر. اضغط <strong>Enter</strong> أو السهم للأسفل للانتقال التلقائي للطالب التالي.</span>
           </div>
 
-          <!-- ملاحظات المعلم -->
-          <div class="form-group">
-            <label class="form-label" for="exam-notes-input">ملاحظات المعلم (اختياري)</label>
-            <textarea id="exam-notes-input" class="form-input" rows="2" placeholder="ملاحظات حول التجويد، الحفظ، ومخارج الحروف..."></textarea>
+          <!-- قائمة رصد درجات الطلاب -->
+                    <!-- ترويسة قائمة الطلاب المبسطة -->
+          <div class="batch-exam-list-header">
+            <span class="batch-header-col col-num">#</span>
+            <span class="batch-header-col col-name">اسم الطالب</span>
+            <span class="batch-header-col col-score">الدرجة (0 - 100)</span>
+          </div>
+
+          <div class="batch-exam-students-container" id="batch-exam-students-container">
+            <!-- يتم توليد صفوف الطلاب ديناميكياً -->
           </div>
         </div>
 
-        <div class="modal-footer" style="padding: 10px 0 0; background: none; border-top: 1px solid var(--surface-border-subtle); display: flex; flex-direction: column; gap: 8px;">
-          <button type="submit" class="btn btn-primary btn-block" id="save-exam-btn">
-            <span>✓</span>
-            <span>حفظ نتيجة الاختبار</span>
+        <!-- تذييل المودال -->
+        <div class="modal-footer batch-exam-footer">
+          <button type="submit" class="btn btn-primary" id="save-batch-exam-btn" style="flex: 2;">
+            <span>💾</span>
+            <span id="save-batch-btn-text">حفظ نتائج الاختبار (0 طلاب)</span>
           </button>
-          <button type="button" class="btn btn-secondary btn-block close-modal-btn" data-modal="exam-modal">إلغاء</button>
+          <button type="button" class="btn btn-secondary close-modal-btn" data-modal="batch-exam-modal" style="flex: 1;">إلغاء</button>
         </div>
       </form>
     </div>
@@ -1055,6 +1106,23 @@
           </div>
         </div>
 
+        <!-- 3. أعمدة الاختبارات المسجلة المراد تضمينها في الكشف -->
+        <div class="export-form-section" id="export-exams-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <label class="export-section-label" style="margin-bottom: 0;">
+              <span>🎓</span>
+              <span>أعمدة الاختبارات في الكشف المطبوع</span>
+            </label>
+            <div class="export-presets-bar">
+              <button type="button" class="export-preset-btn" id="export-exams-preset-all">✨ تحديد كل الاختبارات</button>
+              <button type="button" class="export-preset-btn" id="export-exams-preset-none">🔄 إلغاء التحديد</button>
+            </div>
+          </div>
+          <div class="export-exams-grid" id="export-exams-container">
+            <!-- يتم تعبئة خانات الاختبارات ديناميكياً -->
+          </div>
+        </div>
+
         <!-- 3. خيارات الترتيب وتوجيه الصفحة -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <!-- ترتيب الطلاب -->
@@ -1112,9 +1180,9 @@
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- ملفات الجافاسكريبت -->
-  <script src="js/quran-data.js?v=37"></script>
-  <script src="js/storage.js?v=37"></script>
-  <script src="js/app.js?v=37"></script>
-  <script src="js/pwa-register.js?v=37"></script>
+  <script src="js/quran-data.js?v=42"></script>
+  <script src="js/storage.js?v=42"></script>
+  <script src="js/app.js?v=42"></script>
+  <script src="js/pwa-register.js?v=42"></script>
 </body>
 </html>
